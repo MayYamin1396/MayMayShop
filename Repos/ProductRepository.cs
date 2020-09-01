@@ -3007,7 +3007,7 @@ namespace MayMayShop.API.Repos
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),                                            
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=> x.ThumbnailUrl).SingleOrDefault()
                                         })
             )            
             .ToListAsync();
@@ -3314,7 +3314,7 @@ namespace MayMayShop.API.Repos
             }
         return resp;
         }
-        public async Task<List<string>> GetProductNameSuggestion(GetProductNameSuggestionRequest request)
+        public async Task<List<GetProductNameSuggestionResponse>> GetProductNameSuggestion(GetProductNameSuggestionRequest request)
         {
              //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
@@ -3331,7 +3331,10 @@ namespace MayMayShop.API.Repos
                                                     && x.IsActive==true 
                                                     && !productSkuIDs.Contains(x.Id))
                                                     .OrderByDescending(x =>x.Name.StartsWith(request.SearchText))
-                                                    .Select(x=>x.Name)
+                                                    .Select(x => new GetProductNameSuggestionResponse{
+                                                        ImageUrl =  _context.ProductImage.Where(p=> p.ProductId == x.Id && p.isMain == true).Select(p => p.ThumbnailUrl).FirstOrDefault(),
+                                                        Name = x.Name
+                                                    })
                                                     .Skip((request.PageNumber-1)).Take(request.PageSize).ToListAsync();
 
             return res;
