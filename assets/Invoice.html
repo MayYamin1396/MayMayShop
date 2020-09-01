@@ -1,0 +1,292 @@
+<html>
+    <link rel="stylesheet" href='https://mmwebfonts.comquas.com/fonts/?font=myanmar3' />
+    <link rel="stylesheet" href='https://mmwebfonts.comquas.com/fonts/?font=zawgyi' />
+    <link rel="stylesheet" href='https://mmwebfonts.comquas.com/fonts/?font=Pyidaungsu' />
+    <style>
+
+.pyidaungsu {
+    font-family:'Pyidaungsu';
+    color:#787878;
+   }
+   @font-face {
+    font-family: 'Pyidaungsu';
+    font-style: normal;
+    font-weight: normal;
+    src: url('./ssets/Pyidaungsu-Book-1.8.3_Regular.ttf') format('ttf');
+    
+}
+
+/* * {
+    font-size: 100%;
+    font-family:Myanmar3;
+   }
+   @font-face {
+    font-family: 'Myanmar3';
+    font-style: normal;
+    font-weight: normal;
+    src: url(./mm3_05-Jan-2011.ttf) format('ttf');
+} */
+
+
+
+        .addressPanel{
+            width: 100%;
+            height: 100px;
+        }
+        .QR{
+            height: 80px;
+            width: 80px;
+        }
+        .mainPanel{
+            width: 100%;
+        }
+        .detailPanel{
+            padding-left: 20px;
+            width: 100%;
+        }   
+        .mainPanel .firstRow{
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color: #e83390;
+            color: white;
+        } 
+        .mainPanel .bottomBorder{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1pt solid #D8D8D8;
+            color: #282827;
+        }  
+        .mainPanel .remark{
+            margin: 0;
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color: #1965dd;
+            color: white;
+        }  
+        .mainPanel .remarkValue{
+            margin: 0;
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color:#bbd5f8;
+            color:#282827;
+        }   
+        .floatLeft {
+        width: 50%;
+        float: left;
+        }  
+
+        .detailPanel .firstRow{
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            color: #282827;
+        } 
+        .detailPanel .secondRow{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color:#f3f3f3;
+            color:#787878;
+        } 
+        .detailPanel .bottomBorder{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1pt solid #D8D8D8;
+            color: #282827;
+        }  
+        .signaturePanel {
+            width: 100%;
+        }
+        .signaturePanel .bottomBorder{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1pt solid #787878;
+        }  
+        .totalPanel {
+            width: 100%;
+            padding-left: 20px;
+        }
+
+        .totalPanel .firstColor {
+           padding:5px;
+            background-color:#e54e9b;
+            color: white;
+        }
+        .totalPanel .secondColor {
+            padding:5px;
+            background-color :#e83390;
+            color: white;
+        }
+
+        .dash{
+        border: 1px solid #D8D8D8;
+        width: 180px;
+        height: 0px;
+        }
+
+        .img-responsive {
+        overflow:hidden;
+        background-position:center center;
+        background-repeat:no-repeat;
+        background-size:cover;
+        width: 100%;
+        height:100%;
+        }
+        
+    </style>
+    <body>
+          
+        <div> 
+            <table>
+                <tr>
+                    <td style="width: 90%;height: 100px;">
+                        <img src="#HeaderImage#" class="img-responsive">
+                    </td>
+                    <td style="width: 10%;height: 100px;">
+                        <img src="#HeaderBarcode#" class="img-responsive">
+                    </td>
+                </tr>
+            </table>          
+            <table class="addressPanel">
+                <tr>
+                    <td style="width: 8%;" rowspan="3">
+                        <img src="#QRCodeUrl#" class="QR"/>
+                    </td>                     
+                </tr>
+                <tr>
+                    <td style="width: 10%;">ဘောင်ချာနံပါတ်</td>
+                    <td style="width: 1%;">:</td>
+                    <td style="width: 15%;color: #282827;">#InvoiceNo#</td>
+                    <td style="width: auto;">&nbsp;</td>
+                    <td style="width: 20%;color: #282827;" align="right">#PhoneNo#</td>
+                </tr> 
+                <tr>
+                    <td style="width: 10%;">နေ့စွဲ</td>
+                    <td style="width: 1%;">:</td>
+                    <td style="width: 15%;color: #282827;">#InvoiceDate#</td>
+                    <td style="width: auto;">&nbsp;</td>
+                    <td style="width: 20%;color: #282827;" align="right">#WebsiteUrl#</td>
+                </tr>
+            </table> 
+            <table style="width: 100%;">
+                <tr style="width: 100%;">
+                <td style="width: 50%;vertical-align: top;">
+                    <table class="mainPanel" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td class="firstRow">သို့</td>
+                        </tr>
+                        <tr>
+                            <td class="bottomBorder">#Name#</td>
+                        </tr>
+                        <tr>
+                            <td class="bottomBorder">#CustomerPhoneNo#</td>
+                        </tr>
+                        <tr>
+                            <td class="bottomBorder">#Address#</td>
+                        </tr>
+                        <tr>
+                            <td class="remark">၀ယ်ယူသူ မှတ်ချက်</td>
+                        </tr>
+                        <tr>
+                            <td class="remarkValue">
+                                <div style="min-height: 120px;color: #282827;">
+                                    #Remark#
+                                </div>
+                            </td>
+                        </tr>
+                    </table>  
+                  </td>
+                  <td style="width: 50%;vertical-align: top;">
+                    <table class="detailPanel" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="width: 100%;" colspan="6" class="firstRow">အော်ဒါအသေးစိတ်</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 5%;" class="secondRow">&nbsp;</td>
+                            <td style="width: auto;" class="secondRow">Product အမည်</td>
+                            <td style="width: 15%;" class="secondRow">အရေအတွက်</td>
+                            <!-- <td style="width: 15%;" class="secondRow">အရောင်</td>
+                            <td style="width: 10%;" class="secondRow">ဆိုဒ်</td> -->
+                            <td style="width: 15%;" class="secondRow">ကျသင့်‌ေငွ</td>
+                        </tr>                       
+                        <!-- <tr>
+                            <td style="width: 3%;" class="bottomBorder">၁</td>
+                            <td style="width: auto;" class="bottomBorder">ရေကူးဘောင်းဘီ</td>
+                            <td style="width: 15%;" class="bottomBorder">၁ထည်</td>
+                            <td style="width: 15%;" class="bottomBorder">အနက်</td>
+                            <td style="width: 10%;" class="bottomBorder">S</td>
+                            <td style="width: 15%;" class="bottomBorder">7,000 Ks</td>
+                        </tr> -->
+                        
+                        #ProductItem#
+                    </table> 
+                  </td>
+                </tr>  
+            </table> 
+
+            <table style="width: 100%;padding-top: 50px;">
+                <tr style="width: 100%;">
+                <td style="width: 50%;">
+                    <table class="signaturePanel">                        
+                        <tr>
+                            <td style="width: 50%;">ပါဆယ်ပို့သူ လက်မှတ်</td>
+                            <td style="width: 50%;">ပါဆယ်လက်ခံသူ လက်မှတ်</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;">
+                                <div style="min-height: 70px;">                                   
+                                </div>
+                                <div class="dash"></div>
+                            </td>
+                            <td style="width: 50%;">
+                                <div style="min-height: 70px;">
+                                </div>
+                                <div class="dash"></div>
+                            </td>
+                        </tr>
+                    </table>  
+                  </td>
+                  <td style="width: 50%;">
+                    <table class="totalPanel" cellspacing="0" cellpadding="0">                        
+                        <tr>
+                            <td style="width: 30%;padding-top: 25px;padding-left: 25px;" class="firstColor">ကျသင့်‌‌ေငွ</td>
+                            <td style="width: 3%;padding-top: 25px;" class="firstColor">:</td>
+                            <td style="width: 30%;padding-top: 25px;" class="firstColor">#TotalAmount# Ks</td>
+                            <td style="width: auto;padding-top: 25px;padding-right: 25px;" class="secondColor" align="right">စုစုပေါင်းကျသင့်‌‌ေငွ </td>
+                        </tr>
+                        <tr>
+                            <td style="width: 30%;padding-left: 25px;" class="firstColor">Delivery ခ</td>
+                            <td style="width: 3%;" class="firstColor">:</td>
+                            <td style="width: 30%;" class="firstColor">#DeliveryFee# Ks</td>
+                            <td style="width: auto;font-size:xx-large;padding-right: 25px;font-weight: bolder;" class="secondColor" rowspan="2" align="right">#NetAmount# Ks</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 30%;padding-bottom: 25px;padding-left: 25px;" class="firstColor">စုစုပေါင်းကျသင့်‌ေငွ‌</td>
+                            <td style="width: 3%;padding-bottom: 25px;" class="firstColor">:</td>
+                            <td style="width: 30%;padding-bottom: 25px;font-weight: bold;" class="firstColor">#NetAmount# Ks</td>                            
+                        </tr>                       
+                    </table>  
+                  </td>
+                </tr>  
+            </table>             
+        </div>   
+        <div style="width: 100%;height: 35px;padding-top: 60px;">
+            <img src="#FooterImage#" class="img-responsive">
+        </div>  
+    </body>
+   
+</html>

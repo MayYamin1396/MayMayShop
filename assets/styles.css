@@ -1,0 +1,142 @@
+* {
+    font-family:'Pyidaungsu';
+    color:#787878;
+   }
+   @font-face {
+    font-family: 'Pyidaungsu';
+    font-style: normal;
+    font-weight: normal;
+    src: url('./assets/Pyidaungsu-Book-1.8.3_Regular.ttf') format('ttf');
+}
+
+/* * {
+    font-size: 100%;
+    font-family:Myanmar3;
+   }
+   @font-face {
+    font-family: 'Myanmar3';
+    font-style: normal;
+    font-weight: normal;
+    src: url(./mm3_05-Jan-2011.ttf) format('ttf');
+} */
+
+
+
+        .addressPanel{
+            width: 100%;
+            height: 100px;
+        }
+        .QR{
+            height: 80px;
+            width: 80px;
+        }
+        .mainPanel{
+            width: 100%;
+        }
+        .detailPanel{
+            padding-left: 20px;
+            width: 100%;
+        }   
+        .mainPanel .firstRow{
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color: #e83390;
+            color: white;
+        } 
+        .mainPanel .bottomBorder{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1pt solid #D8D8D8;
+            color: #282827;
+        }  
+        .mainPanel .remark{
+            margin: 0;
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color: #1965dd;
+            color: white;
+        }  
+        .mainPanel .remarkValue{
+            margin: 0;
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color:#bbd5f8;
+            color:#282827;
+        }   
+        .floatLeft {
+        width: 50%;
+        float: left;
+        }  
+
+        .detailPanel .firstRow{
+            padding-left: 10px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            color: #282827;
+        } 
+        .detailPanel .secondRow{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            background-color:#f3f3f3;
+            color:#787878;
+        } 
+        .detailPanel .bottomBorder{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1pt solid #D8D8D8;
+            color: #282827;
+        }  
+        .signaturePanel {
+            width: 100%;
+        }
+        .signaturePanel .bottomBorder{
+            padding-left: 5px;
+            padding-top: 5px;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1pt solid #787878;
+        }  
+        .totalPanel {
+            width: 100%;
+            padding-left: 20px;
+        }
+
+        .totalPanel .firstColor {
+           padding:5px;
+            background-color:#e54e9b;
+            color: white;
+        }
+        .totalPanel .secondColor {
+            padding:5px;
+            background-color :#e83390;
+            color: white;
+        }
+
+        .dash{
+        border: 1px solid #D8D8D8;
+        width: 180px;
+        height: 0px;
+        }
+
+        .img-responsive {
+        overflow:hidden;
+        background-position:center center;
+        background-repeat:no-repeat;
+        background-size:cover;
+        width: 100%;
+        height:100%;
+        }
+        
