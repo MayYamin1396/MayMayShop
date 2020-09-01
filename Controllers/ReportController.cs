@@ -18,7 +18,7 @@ namespace Ecommerce.API.Controllers
     [ApiController]
     [Authorize]
     [ServiceFilter(typeof(ActionActivity))]
-    // [ServiceFilter(typeof(ActionActivityLog))]
+    [ServiceFilter(typeof(ActionActivityLog))]
     public class ReportController : ControllerBase
     {
         private readonly IReportRepository _repo;

@@ -24,10 +24,7 @@ namespace MayMayShop.API.Controllers
 {
 
     [Route("api/[controller]")]
-    [ApiController]
-    [Authorize]
-    [ServiceFilter(typeof(ActionActivity))]
-    // [ServiceFilter(typeof(ActionActivityLog))]
+    [ApiController]    
     public class ProductController : ControllerBase
     {
         private readonly IProductRepository _repo;
@@ -45,6 +42,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("PopulateSku")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> PopulateSku(PopulateSkuRequest req)
         {
             try
@@ -65,6 +65,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("CreateProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> CreateProduct(CreateProductRequest req)
         {
             try
@@ -90,6 +94,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("UpdateProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> UpdateProduct(UpdateProductRequest req)
         {
             try
@@ -158,6 +166,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("DeleteSku")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> DeleteSku(DeleteSkuRequest request)
         {
             try
@@ -181,6 +193,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("AddSkuForUpdateProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> AddSkuForUpdateProduct(AddSkuForUpdateProductRequest request)
         {
             try
@@ -204,12 +220,23 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetProductDetail")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductDetail([FromQuery]GetProductDetailRequest request)
         {
             try
             {
-                string token = Request.Headers["Authorization"];
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                string token ="";
+                var userId =0;
+                try{
+                    token = Request.Headers["Authorization"];
+                    userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                }
+                catch(Exception){
+
+                }                
 
                 var response = await _repo.GetProductDetail(request,userId,token);
                 if (response == null)
@@ -236,6 +263,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetLandingProductPromotion")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetLandingProductPromotion([FromQuery]GetLandingProductPromotionRequest request)
         {
             try
@@ -257,6 +288,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetLandingProductLatest")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetLandingProductLatest([FromQuery]GetLandingProductLatestRequest request)
         {
             try
@@ -277,6 +312,10 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpGet("GetProductByRelatedCategry")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductByRelatedCategry([FromQuery]GetProductByRelatedCategryRequest request)
         {
             try
@@ -298,6 +337,10 @@ namespace MayMayShop.API.Controllers
 
 
         [HttpGet("GetProductByRelatedTag")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductByRelatedTag([FromQuery]GetProductByRelatedTagRequest request)
         {
             try
@@ -318,6 +361,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetLandingProductCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetLandingProductCategory([FromQuery]GetLandingProductCategoryRequest request)
         {
             try
@@ -338,6 +385,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("ProductSearch")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> ProductSearch([FromQuery] ProductSearchRequest request)
         {
             try
@@ -382,6 +433,10 @@ namespace MayMayShop.API.Controllers
         }
        
         [HttpGet("GetProductList")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductList([FromQuery]GetProductListRequest request)
         {
             try
@@ -401,6 +456,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPut("DeleteProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> DeleteProduct(DeleteProductRequest request)
         {
             try
@@ -420,6 +479,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetVariantByCategoryId")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetVariantByCategoryId(int categoryId)
         {
             try
@@ -435,6 +498,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("ProductSkuHold")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> ProductSkuHold(ProductSkuHoldRequest req)
         {
             try
@@ -450,6 +517,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("GetProductSku")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductSku(GetProductSkuRequest req)
         {
             try
@@ -469,6 +540,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("GetProductVariant")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductVariant(GetProductSkuRequest req)
         {
             try
@@ -488,6 +563,10 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpPost("GetVariantValue")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetVariantValue(GetVariantValueRequest request)
         {
             try
@@ -503,13 +582,12 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetProductNameSuggestion")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetProductNameSuggestion([FromQuery] GetProductNameSuggestionRequest req)
         {
-            // GetProductNameSuggestionRequest req = new GetProductNameSuggestionRequest {
-            //     SearchText = searchText,
-            //     PageNumber = 1,
-            //     PageSize = 10
-            // };
             try
             {
                 var response = await _repo.GetProductNameSuggestion(req);
@@ -523,6 +601,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetBestSellingProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetBestSellingProduct([FromQuery]GetBestSellingProductRequest request)
         {
             try
@@ -538,6 +620,10 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpPost("UploadProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> UploadProduct([FromForm]UploadProductRequest request)
         {           
             try
@@ -555,6 +641,10 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetAllProductListBuyer")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
         public async Task<IActionResult> GetAllProductListBuyer([FromQuery]GetAllProductListBuyerRequest request)
         {
             try

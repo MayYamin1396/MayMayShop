@@ -835,5 +835,26 @@ namespace MayMayShop.API.Repos
             response.TransactionId = transaction.Id;
             return response;
         }
+
+        public async Task<List<GetConfigMemberPointProductCategory>> GetProductCategoryForCreateConfigMemberPoint(string token)
+        {
+            var productCategoryList=await _memberPointServices.GetProductCategoryForCreateConfigMemberPoint(token);
+                        
+            var productCategoryId=productCategoryList.Select(x=>x.ProductCategoryId).ToArray();
+            var productCategory= await _context.ProductCategory
+                    .Where(x=>x.IsDeleted!=true
+                    && !productCategoryId.Contains(x.Id)
+                    && x.SubCategoryId!=null 
+                    && x.SubCategoryId!=0)
+                    .Select(x=> new GetConfigMemberPointProductCategory{
+                        ProductCategoryId=x.Id,
+                        ProductCategoryName=x.Name,
+                        Url=x.Url,
+                        ConfigMemberPointId=0,
+                        ApplicationConfigId=MayMayShopConst.APPLICATION_CONFIG_ID
+                    }).ToListAsync();               
+                            
+            return productCategory;
+        }
     }
 }

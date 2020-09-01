@@ -110,5 +110,23 @@ namespace MayMayShop.API.Services
             }
             return new ResponseStatus(){StatusCode=StatusCodes.Status404NotFound};
         }
+
+        public async Task<List<GetConfigMemberPointProductCategory>> GetProductCategoryForCreateConfigMemberPoint(string token)
+        {
+            token = token.Remove(0,7);
+            client.DefaultRequestHeaders.Authorization 
+                         = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpResponseMessage response = await client
+                .GetAsync(MayMayShopConst.MEMBERPOINT_SERVICE_PATH + "GetProductCategory/?applicationConfigId="+MayMayShopConst.APPLICATION_CONFIG_ID);
+            
+            if(response.IsSuccessStatusCode)
+            {
+                var data = JsonConvert.DeserializeObject<List<GetConfigMemberPointProductCategory>>(
+                    await response.Content.ReadAsStringAsync());
+                return data;
+            }
+            return new List<GetConfigMemberPointProductCategory>();
+        }
     }
 }

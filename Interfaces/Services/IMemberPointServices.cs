@@ -11,6 +11,7 @@ namespace MayMayShop.API.Interfaces.Services
         Task<GetConfigMemberPointResponse> GetConfigMemberPointById(int id, string token);
         Task<ResponseStatus> ReceivedMemberPoint(ReceivedMemberPointRequest request,string token);    
         Task<GetMyOwnPointResponse> GetMyOwnPoint(GetMyOwnPointRequest request,string token);
-        Task<ResponseStatus> RedemptionMemberPoint(RedemptionMemberPointRequest request,string token);   
+        Task<ResponseStatus> RedemptionMemberPoint(RedemptionMemberPointRequest request,string token); 
+        Task<List<GetConfigMemberPointProductCategory>> GetProductCategoryForCreateConfigMemberPoint(string token);  
     }
 }

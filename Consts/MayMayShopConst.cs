@@ -96,6 +96,9 @@ namespace MayMayShop.API.Const
         public static int ACTIVITY_TYPE_IP;
         public static int ACTIVITY_TYPE_ACTIVE;
         public static int ACTIVITY_TYPE_REGISTER;
+        public static int ACTIVITY_TYPE_MAKE_PAYMENT;
+        public static int ACTIVITY_TYPE_PAYMENT_STATUS;
+        public static int ACTIVITY_TYPE_ORDER_STATUS;
 
         public static int SEARCH_KEYWORD_ALL;
         public static int SEARCH_KEYWORD_WITH_RESULT;
@@ -185,7 +188,7 @@ namespace MayMayShop.API.Const
         public static string[] AndroidDevice = new string[]
                                             {
                                                 "Android",
-                                                "andriod"
+                                                "android"
                                             };
         public static string[] IosDevice = new string[]
                                             {
@@ -301,6 +304,9 @@ namespace MayMayShop.API.Const
             ACTIVITY_TYPE_IP = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ACTIVITY_TYPE + ".ip"));
             ACTIVITY_TYPE_ACTIVE = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ACTIVITY_TYPE + ".active"));
             ACTIVITY_TYPE_REGISTER = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ACTIVITY_TYPE + ".register"));
+            ACTIVITY_TYPE_MAKE_PAYMENT = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ACTIVITY_TYPE + ".makePayment"));
+            ACTIVITY_TYPE_PAYMENT_STATUS = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ACTIVITY_TYPE + ".paymentStatus"));
+            ACTIVITY_TYPE_ORDER_STATUS = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ACTIVITY_TYPE + ".orderStatus"));
 
             SEARCH_KEYWORD_ALL = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_SEARCH_KEYWORD + ".all"));
             SEARCH_KEYWORD_WITH_RESULT = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_SEARCH_KEYWORD + ".withResult"));

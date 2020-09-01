@@ -22,10 +22,7 @@ using DeviceDetectorNET.Parser;
 namespace MayMayShop.API.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    [Authorize]
-    [ServiceFilter(typeof(ActionActivity))]
-    // [ServiceFilter(typeof(ActionActivityLog))]
+    [ApiController]    
     public class OrderController : ControllerBase
     {
         private readonly IOrderRepository _repo;
@@ -47,6 +44,9 @@ namespace MayMayShop.API.Controllers
         }
    
         [HttpPost("AddToCart")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> AddToCart(AddToCartRequest request)
         {
             try
@@ -94,6 +94,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpPost("RemoveFromCart")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> RemoveFromCart(RemoveFromCartRequest request)
         {
             try
@@ -120,7 +123,6 @@ namespace MayMayShop.API.Controllers
                         platform=3; //Web                
                     } 
                     #endregion
-                    userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 }
                 catch{
                 }
@@ -142,6 +144,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetCartDetail")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetCartDetail()
         {
             try
@@ -167,6 +172,9 @@ namespace MayMayShop.API.Controllers
         }
 
          [HttpPost("UpdateDeliveryinfo")]
+         [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateDeliveryinfo(UpdateDeliveryInfoRequest request)
         {
             try
@@ -189,6 +197,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("UpdateDeliveryDateAndTime")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateDeliveryDateAndTime(UpdateDeliveryDateAndTimeRequest request)
         {
             try
@@ -212,6 +223,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpGet("GetDeliverySlot")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetDeliverySlot([FromQuery]GetDeliverySlotRequest request)
         {
             try
@@ -228,6 +242,9 @@ namespace MayMayShop.API.Controllers
         }
        
         [HttpPost("PostOrder")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> PostOrder(PostOrderRequest request)
         {
             try
@@ -274,6 +291,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpPost("PostOrderByKBZPay")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> PostOrderByKBZPay(PostOrderRequest request)
         {
             try
@@ -291,6 +311,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("CheckKPayStatus")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> CheckKPayStatus(string transactionId)
         {
             try
@@ -337,6 +360,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("UpdateProductCart")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateProductCart(UpdateProductCartRequest request)
         {
             try
@@ -358,6 +384,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetOrderHistory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetOrderHistory([FromQuery] GetOrderHistoryRequest request)
         {
             try
@@ -377,6 +406,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetOrderHistorySeller")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetOrderHistorySeller([FromQuery] GetOrderHistorySellerRequest request)
         {
             try
@@ -395,6 +427,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetNotificationBuyer")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetNotificationBuyer([FromQuery] GetNotificationRequest request)
         {
             try
@@ -416,6 +451,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetNotificationSeller")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetNotificationSeller([FromQuery] GetNotificationRequest request)
         {
             try
@@ -437,6 +475,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("SeenNotification")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> SeenNotification([FromQuery] SeenNotificationRequest request)
         {
             try
@@ -458,12 +499,38 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("UpdateOrderStatus")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateOrderStatus(UpdateOrderStatusRequest request)
         {
             try
             {
                 var currentUserLogin = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _repo.UpdateOrderStatus(request, currentUserLogin);
+                 var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+                var response = await _repo.UpdateOrderStatus(request, currentUserLogin,platform);
                 
                 if (response.StatusCode != StatusCodes.Status200OK)
                 {
@@ -479,13 +546,41 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("UpdatePaymentStatus")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdatePaymentStatus(UpdatePaymentStatusRequest request)
         {
             try
             {
                 string token = Request.Headers["Authorization"];
                 var currentUserLogin = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _repo.UpdatePaymentStatus(request, currentUserLogin, token);
+
+                var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+
+                var response = await _repo.UpdatePaymentStatus(request, currentUserLogin, token,platform);
                 if (response.StatusCode != StatusCodes.Status200OK)
                 {
                     return StatusCode(response.StatusCode, response);
@@ -499,6 +594,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpPost("UpdateDeliveryServiceStatus")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateDeliveryServiceStatus(UpdateDeliveryServiceStatusRequest request)
         {
             try
@@ -520,12 +618,38 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("SellerOrderCancel")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> SellerOrderCancel(OrderCancelRequest request)
         {
             try
             {
                 var currentUserLogin = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _repo.SellerOrderCancel(request, currentUserLogin);
+                var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+                var response = await _repo.SellerOrderCancel(request, currentUserLogin,platform);
                 if (response.StatusCode != StatusCodes.Status200OK)
                 {
                     return StatusCode(response.StatusCode, response);
@@ -540,13 +664,39 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("BuyerOrderCancel")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> BuyerOrderCancel(OrderCancelRequest request)
         {
             try
             {
                 string token = Request.Headers["Authorization"];
                 var currentUserLogin = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _repo.BuyerOrderCancel(request, currentUserLogin, token);
+                var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+                var response = await _repo.BuyerOrderCancel(request, currentUserLogin, token,platform);
                 if (response.StatusCode != StatusCodes.Status200OK)
                 {
                     return StatusCode(response.StatusCode, response);
@@ -561,12 +711,40 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("PaymentAgain")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> PaymentAgain(PaymentAgainRequest request)
         {
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _repo.PaymentAgain(request, userId);
+                string token = Request.Headers["Authorization"];
+                var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+
+                var response = await _repo.PaymentAgain(request, userId,platform,token);
                 if (response.StatusCode != StatusCodes.Status200OK)
                 {
                     return StatusCode(response.StatusCode, response);
@@ -581,6 +759,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("ChangeDeliveryAddress")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> ChangeDeliveryAddress(ChangeDeliveryAddressRequest request)
         {
             try
@@ -599,12 +780,40 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpPost("PaymentApprove")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> PaymentApprove(PaymentApproveRequest request)
         {
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var response = await _repo.PaymentApprove(request, userId);
+
+                var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+
+                var response = await _repo.PaymentApprove(request, userId,platform);
                 if (response.StatusCode != StatusCodes.Status200OK)
                 {
                     return StatusCode(response.StatusCode, response);
@@ -619,6 +828,9 @@ namespace MayMayShop.API.Controllers
         }
        
         [HttpGet("GetOrderDetail")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetOrderDetail(int orderId)
         {
             try
@@ -641,6 +853,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpGet("GetOrderListByProduct")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetOrderListByProduct([FromQuery]GetOrderListByProductRequest request)
         {
             try
@@ -659,6 +874,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetOrderListByProductId")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetOrderListByProductId([FromQuery]GetOrderListByProductIdRequest request)
         {
             try
@@ -677,6 +895,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetVoucherNoSuggestion")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetVoucherNoSuggestion([FromQuery] GetVoucherNoSuggestionRequest request)
         {
             try
@@ -691,6 +912,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetVoucherNoSuggestionSeller")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetVoucherNoSuggestionSeller([FromQuery]GetVoucherNoSuggestionSellerRequest request)
         {
             try
@@ -706,6 +930,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("voucherprint")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> VoucherPrint(int id)
         {
             ComponentInfo.SetLicense("FREE-LIMITED-KEY");
@@ -776,6 +1003,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpGet("GetVoucher")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetVoucher(int orderId)
         {
             try
@@ -791,6 +1021,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetPOSVoucher")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetPOSVoucher(int orderId)
         {
             try

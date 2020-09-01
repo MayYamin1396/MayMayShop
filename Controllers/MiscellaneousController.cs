@@ -18,11 +18,8 @@ using Microsoft.EntityFrameworkCore;
 namespace MayMayShop.API.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    [Authorize]
-    [ServiceFilter(typeof(ActionActivity))]
-    // [ServiceFilter(typeof(ActionActivityLog))]
-
+    [ApiController]    
+    
     public class MiscellaneousController : ControllerBase
     {
         private readonly IMiscellaneousRepository _repo;
@@ -40,6 +37,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetCity")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetCity()
         {
             try
@@ -56,6 +56,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetTownship")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetTownship([FromQuery]GetTownshipRequest request)
         {
             try
@@ -72,6 +75,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetMainCategory")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        //[ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetMainCategory()
         {
             try
@@ -87,6 +93,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetSubCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetSubCategory([FromQuery]GetSubCategoryRequest request)
         {
             try
@@ -102,6 +111,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("SearchTag")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> SearchTag([FromQuery]SearchTagRequest request)
         {
             try
@@ -117,6 +129,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetBank")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBank()
         {
             try
@@ -131,6 +146,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetTag")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        //[ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetTag()
         {
             try
@@ -146,6 +164,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("SearchCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> SearchCategory(string searchText)
         {
             try
@@ -161,6 +182,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetCategoryIcon")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetCategoryIcon()
         {
             try
@@ -175,6 +199,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpPost("CreateMainCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> CreateMainCategory(CreateMainCategoryRequest request)
         {
             try
@@ -191,6 +218,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpPost("UpdateMainCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateMainCategory(UpdateMainCategoryRequest request)
         {
             try
@@ -207,6 +237,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("DeleteMainCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> DeleteMainCategory(int productCategoryId)
         {
             try
@@ -223,6 +256,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetMainCategoryById")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetMainCategoryById(int productCategoryId)
         {
             try
@@ -238,6 +274,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpPost("CreateSubCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> CreateSubCategory(CreateSubCategoryRequest request)
         {
             try
@@ -254,6 +293,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpPost("UpdateSubCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateSubCategory(UpdateSubCategoryRequest request)
         {
             try
@@ -270,6 +312,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("DeleteSubCategory")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> DeleteSubCategory(int productCategoryId)
         {
             try
@@ -286,6 +331,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetSubCategoryById")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetSubCategoryById(int productCategoryId)
         {
             try
@@ -301,6 +349,9 @@ namespace MayMayShop.API.Controllers
         }
 
          [HttpPost("CreateVariant")]
+         [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> CreateVariant(CreateVariantRequest request)
         {
             try
@@ -317,6 +368,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpPost("UpdateVariant")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateVariant(UpdateVariantRequest request)
         {
             try
@@ -333,6 +387,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("DeleteVariant")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> DeleteVariant(int variantId)
         {
             try
@@ -349,6 +406,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetPolicy")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetPolicy()
         {
             try
@@ -364,6 +424,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("CreateBanner")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> CreateBanner(CreateBannerRequest req)
         {
             try
@@ -385,6 +448,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpPost("CreateMultipleBanner")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> CreateMultipleBanner(CreateMultipleBannerRequest req)
         {
             try
@@ -423,6 +489,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpPost("UpdateBanner")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> UpdateBanner(UpdateBannerRequest req)
         {
             try
@@ -466,6 +535,9 @@ namespace MayMayShop.API.Controllers
         }
 
          [HttpPost("DeleteBanner")]
+         [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> DeleteBanner(int id)
         {
             try
@@ -484,6 +556,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpGet("GetBannerById")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBannerById(int id)
         {
             try
@@ -498,6 +573,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetBannerList")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        //[ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBannerList(int bannerType)
         {
             try
@@ -512,6 +590,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetBannerLink")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBannerLink()
         {
             try
@@ -526,6 +607,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetDeliveryService")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetDeliveryService()
         {
             try

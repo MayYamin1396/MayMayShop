@@ -18,7 +18,7 @@ namespace MayMayShop.API.Controllers
     [ApiController]
     [Authorize]
     [ServiceFilter(typeof(ActionActivity))]
-    // [ServiceFilter(typeof(ActionActivityLog))]
+    [ServiceFilter(typeof(ActionActivityLog))]
 
     public class MemberPointController : ControllerBase
     {
@@ -219,6 +219,26 @@ namespace MayMayShop.API.Controllers
                 if (response.StatusCode !=StatusCodes.Status200OK)
                 {
                     return StatusCode(response.StatusCode,response);
+                }               
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpGet("GetProductCategoryForCreateConfigMemberPoint")]
+        public async Task<IActionResult> GetProductCategoryForCreateConfigMemberPoint()
+        {
+            try
+            {       
+                string token = Request.Headers["Authorization"];                        
+                var response = await _memberPointRepo.GetProductCategoryForCreateConfigMemberPoint(token);
+                if (response == null)
+                {
+                    return Ok(new { message = "No Result Found!" });
                 }               
                 return Ok(response);
             }

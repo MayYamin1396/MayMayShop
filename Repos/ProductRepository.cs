@@ -2150,7 +2150,7 @@ namespace MayMayShop.API.Repos
 
                     var variantIds = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).Select(s => s.VariantId).Distinct().ToListAsync();
 
-                    product.Variant = await _context.Variant.Where(x => x.ProductCategoryId == product.ProductCategoryId  && variantIds.Contains(x.Id))                   
+                    product.Variant = await _context.Variant.Where(x => x.ProductCategoryId == product.ProductCategoryId  && (variantIds.Count()==0 || variantIds.Contains(x.Id)))                   
                                     .Select(s => new GetProductDetailVariant
                                     {
                                         VariantId = s.Id,
@@ -2158,19 +2158,23 @@ namespace MayMayShop.API.Repos
                                     }).ToListAsync();
 
                      var productSkuList = await _context.ProductSku.Where(x => x.ProductId == product.Id).ToListAsync();
-                    if (productSkuList.Count > 0)
+                    if (productSkuList.Count() > 0)
                     {
                         product.SkuValue = new List<GetProductDetailSkuValue>();
                         foreach (var item in productSkuList)
                         {   
                             //check for duplicate multiple add tocart    
-                            int cQty=0;   
+                            int cQty=0; 
+                            if(userId!=0)
+                            {
                             var userInfo = await _userServices.GetUserInfo(userId, token);                        
                             TrnCart cart=await _context.TrnCart.Where(a=>a.UserId==userId && a.SkuId==item.SkuId && a.ProductId==item.ProductId).FirstOrDefaultAsync();
                             
                             if(cart!=null && userInfo!=null && userInfo.UserTypeId==MayMayShopConst.USER_TYPE_BUYER){
                                 cQty=cart.Qty;
                             }
+                            }  
+                            
                             product.Qty += item.Qty;
                             var skuKeys = await _context.ProductSkuValue
                                 .Where(x => x.ProductId == item.ProductId && x.SkuId == item.SkuId)
@@ -2359,8 +2363,8 @@ namespace MayMayShop.API.Repos
                                 .ToArrayAsync();
 
             var prodcutIDs=await _context.ProductPromotion
-                            .Select(x=>x.ProductId)
-                            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
+                            .Where(x=>!productSkuIDs.Contains(x.ProductId))                            
+                            .Select(x=>x.ProductId)                            
                             .ToListAsync();
             return await _context.Product
                     .Include(x=>x.ProductPrice)
@@ -2368,6 +2372,7 @@ namespace MayMayShop.API.Repos
                     .Where(x=>prodcutIDs.Contains(x.Id)
                     && !productSkuIDs.Contains(x.Id)
                     && x.IsActive==true)
+                    .OrderBy(x=>x.ProductPromotion.TotalAmt)
                     .Select(x=>new GetLandingProductPromotionResponse{
                         ProductId=x.Id,
                         Name=x.Name,
@@ -2375,7 +2380,9 @@ namespace MayMayShop.API.Repos
                         OriginalPrice=x.ProductPrice.Where(i=>i.ProductId==x.Id).Select(i=>i.Price).FirstOrDefault(),
                         PromotePrice=x.ProductPromotion.TotalAmt,
                         PromotePercent=x.ProductPromotion.Percent
-                    }).ToListAsync();
+                    })
+                    .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
+                    .ToListAsync();
         }
         public async Task<List<GetLandingProductLatestResponse>> GetLandingProductLatest(GetLandingProductLatestRequest request)
         {
@@ -2642,6 +2649,10 @@ namespace MayMayShop.API.Repos
                 pTags=await _context.ProductTag
                     .Where(x=>request.TagIDs.Contains(x.TagId))
                     .Select(x=>x.ProductId).ToArrayAsync();
+                if(pTags.Count()==0)
+                {
+                    return null;
+                }
             }
 
             int[] pQty={};
@@ -2657,6 +2668,10 @@ namespace MayMayShop.API.Repos
                                 .Where(x=>x.TotalQty>=request.Count)
                                 .Select(x=>x.ProductId)
                                 .ToArrayAsync();
+                 if(pQty.Count()==0)
+                {
+                    return null;
+                }
             }
 
             if(request.Filter==1)// All
@@ -2755,7 +2770,7 @@ namespace MayMayShop.API.Repos
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
                             && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
-                            && (pTags.Length==0 || pTags.Contains(x.Id))
+                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
                             .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
@@ -2767,7 +2782,7 @@ namespace MayMayShop.API.Repos
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
                             && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
-                            && (pTags.Length==0 || pTags.Contains(x.Id))
+                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
                             .CountAsync();
@@ -2896,64 +2911,68 @@ namespace MayMayShop.API.Repos
         public async Task<ProductSearchResponse> ProductSearch(ProductSearchRequest request,int userId,int platform)
         {
             #region  Activity Log
-            //  ActivityLog data=new ActivityLog(){
-            //     UserId=userId,
-            //     ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_SEARCH,
-            //     Value=request.ProductName,
-            //     CreatedBy=userId,
-            //     CreatedDate=DateTime.Now,
-            //     PlatformId=platform,
-            //     ResultCount=_context.Product.Where(x=>x.Name.Contains(request.ProductName)).Count()
-            // };
-            // _context.ActivityLog.Add(data);
-            // await _context.SaveChangesAsync();
+            if(!string.IsNullOrEmpty(request.ProductName))
+            {
+                 ActivityLog data=new ActivityLog(){
+                UserId=userId,
+                ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_SEARCH,
+                Value=request.ProductName,
+                CreatedBy=userId,
+                CreatedDate=DateTime.Now,
+                PlatformId=platform,
+                ResultCount=_context.Product.Where(x=>x.Name.Contains(request.ProductName)).Count()
+            };
+            _context.ActivityLog.Add(data);
+            await _context.SaveChangesAsync();
 
             // Keyword
-            // var keyworkList=request.ProductName.ToLower().Split(" ");
-            // foreach(var key in keyworkList)
-            // {
-            //     var exitKeyword= await _context.SearchKeyword
-            //                     .Where(x=>x.Name.ToLower()==key.ToLower())
-            //                     .SingleOrDefaultAsync();
-            //     if(exitKeyword==null && !MayMayShopConst.NonKeyword.Contains(key.ToLower()))//new keyword
-            //     {
-            //         var newKeyword=new SearchKeyword(){
-            //             Name=key.ToLower(),
-            //             CreatedBy=userId,
-            //             CreatedDate=DateTime.Now
-            //         };
-            //         _context.SearchKeyword.Add(newKeyword);
-            //         await _context.SaveChangesAsync();
+            var keyworkList=request.ProductName.ToLower().Split(" ");
+            foreach(var key in keyworkList)
+            {
+                var exitKeyword= await _context.SearchKeyword
+                                .Where(x=>x.Name.ToLower()==key.ToLower())
+                                .SingleOrDefaultAsync();
+                if(exitKeyword==null && !MayMayShopConst.NonKeyword.Contains(key.ToLower()))//new keyword
+                {
+                    var newKeyword=new SearchKeyword(){
+                        Name=key.ToLower(),
+                        CreatedBy=userId,
+                        CreatedDate=DateTime.Now
+                    };
+                    _context.SearchKeyword.Add(newKeyword);
+                    await _context.SaveChangesAsync();
 
-            //         var newKeywordTrn=new SearchKeywordTrns(){
-            //             SearchKeywordId=newKeyword.Id,
-            //             Count=1,
-            //             CreatedDate=DateTime.Now,
-            //         };
-            //         _context.SearchKeywordTrns.Add(newKeywordTrn);
-            //         await _context.SaveChangesAsync();
-            //     }
-            //     else{
-            //         var searchTrn=await _context.SearchKeywordTrns
-            //                     .Where(x=>x.SearchKeywordId==exitKeyword.Id
-            //                     && x.CreatedDate.Date==DateTime.Now.Date)
-            //                     .SingleOrDefaultAsync();
-            //         if (searchTrn==null)
-            //         {
-            //             var newKeywordTrn=new SearchKeywordTrns(){
-            //             SearchKeywordId=exitKeyword.Id,
-            //             Count=1,
-            //             CreatedDate=DateTime.Now,
-            //             };
-            //         _context.SearchKeywordTrns.Add(newKeywordTrn);
-            //         }
-            //         else{
-            //             searchTrn.Count=searchTrn.Count+1;
-            //         }
-            //         await _context.SaveChangesAsync();
-            //     }
+                    var newKeywordTrn=new SearchKeywordTrns(){
+                        SearchKeywordId=newKeyword.Id,
+                        Count=1,
+                        CreatedDate=DateTime.Now,
+                    };
+                    _context.SearchKeywordTrns.Add(newKeywordTrn);
+                    await _context.SaveChangesAsync();
+                }
+                else{
+                    var searchTrn=await _context.SearchKeywordTrns
+                                .Where(x=>x.SearchKeywordId==exitKeyword.Id
+                                && x.CreatedDate.Date==DateTime.Now.Date)
+                                .SingleOrDefaultAsync();
+                    if (searchTrn==null)
+                    {
+                        var newKeywordTrn=new SearchKeywordTrns(){
+                        SearchKeywordId=exitKeyword.Id,
+                        Count=1,
+                        CreatedDate=DateTime.Now,
+                        };
+                    _context.SearchKeywordTrns.Add(newKeywordTrn);
+                    }
+                    else{
+                        searchTrn.Count=searchTrn.Count+1;
+                    }
+                    await _context.SaveChangesAsync();
+                }
 
-            // }
+            }
+
+            }
             #endregion
 
             //product id that qty is 0 or less than 0.
@@ -2979,7 +2998,7 @@ namespace MayMayShop.API.Repos
                                         from p in _context.Product
                                         where p.IsActive == true
                                         &&    (String.IsNullOrEmpty(request.ProductName) || p.Name.Contains(request.ProductName))
-                                        && !productSkuIDs.Contains(p.Id)
+                                        && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
                                             Id = p.Id,
                                             Name = p.Name,
@@ -2990,8 +3009,7 @@ namespace MayMayShop.API.Repos
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),                                            
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
-            )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
+            )            
             .ToListAsync();
             }
             #endregion
@@ -3004,8 +3022,8 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
-                                        && (categoryIDs==null || categoryIDs.Contains(p.ProductCategoryId))
-                                        && !productSkuIDs.Contains(p.Id)
+                                        && (categoryIDs.Count()==0 || categoryIDs.Contains(p.ProductCategoryId))
+                                        && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
                                             Id = p.Id,
                                             Name = p.Name,
@@ -3017,7 +3035,6 @@ namespace MayMayShop.API.Repos
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
             )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
             .ToListAsync();
             }
             #endregion
@@ -3026,15 +3043,15 @@ namespace MayMayShop.API.Repos
             else if(request.SearchType==MayMayShopConst.SEARCHTYPE_TAG)
             {           
                 var proIDs=await _context.ProductTag
-                            .Where(x=>request.tagIds == null || request.tagIds.Contains(x.TagId))
+                            .Where(x=>request.tagIds.Count() == 0 || request.tagIds.Contains(x.TagId))
                             .Select(x=>x.ProductId)
                             .ToListAsync();
 
                 productList = await ( (
                                         from p in _context.Product                                       
                                         where p.IsActive == true
-                                        &&    (proIDs == null ||proIDs.Contains(p.Id))
-                                        && !productSkuIDs.Contains(p.Id)
+                                        &&    (proIDs.Count() == 0 ||proIDs.Contains(p.Id))
+                                        && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
                                             Id = p.Id,
                                             Name = p.Name,
@@ -3046,7 +3063,6 @@ namespace MayMayShop.API.Repos
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
             )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
             .ToListAsync();
             }
             #endregion
@@ -3057,7 +3073,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
-                                        && !productSkuIDs.Contains(p.Id)
+                                        && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         orderby p.CreatedDate descending
                                         select new ProductInfo{
                                             Id = p.Id,
@@ -3070,24 +3086,22 @@ namespace MayMayShop.API.Repos
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
             )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
             .ToListAsync();
             }
             #endregion
 
             #region Search by Promotion Product
             else if(request.SearchType==MayMayShopConst.SEARCHTYPE_PROMOTION)
-            {
+            {                
                 var proIDs=await _context.ProductPromotion
-                                .OrderByDescending(x=>x.TotalAmt)
+                                .Where(x=>(productSkuIDs.Count()==0 || !productSkuIDs.Contains(x.ProductId)))                                
                                 .Select(x=>x.ProductId)
-                                .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
                                 .ToListAsync();
+
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
-                                        && (proIDs.Count()==0 || proIDs.Contains(p.Id))
-                                        && !productSkuIDs.Contains(p.Id)
+                                        && (proIDs.Count()==0 || proIDs.Contains(p.Id))                        
                                         select new ProductInfo{
                                             Id = p.Id,
                                             Name = p.Name,
@@ -3099,7 +3113,6 @@ namespace MayMayShop.API.Repos
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
             )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
             .ToListAsync();
             }
             #endregion
@@ -3111,7 +3124,7 @@ namespace MayMayShop.API.Repos
                                         from p in _context.Product
                                         where p.IsActive == true
                                         && (request.ProductCategoryId==0 || p.ProductCategoryId==request.ProductCategoryId)
-                                        && !productSkuIDs.Contains(p.Id)
+                                        && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))        
                                         select new ProductInfo{
                                             Id = p.Id,
                                             Name = p.Name,
@@ -3123,7 +3136,6 @@ namespace MayMayShop.API.Repos
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
             )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
             .ToListAsync();
             }
             #endregion
@@ -3148,7 +3160,7 @@ namespace MayMayShop.API.Repos
                                         from p in _context.Product
                                         .Where(x => x.IsActive == true 
                                         && productListIDS.Contains(x.Id)
-                                        && !productSkuIDs.Contains(x.Id))
+                                        && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(x.Id)))
                                         select new ProductInfo{
                                             Id = p.Id,
                                             Name = p.Name,
@@ -3160,7 +3172,6 @@ namespace MayMayShop.API.Repos
                                             Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
                                         })
             )
-            .Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize)
             .ToListAsync();
             }
             #endregion
@@ -3174,7 +3185,27 @@ namespace MayMayShop.API.Repos
 
             if (request.Choose != 0 && response.ProductList!=null)
             {
+                if(request.SearchType==MayMayShopConst.SEARCHTYPE_PROMOTION)
+                {
                 if (request.Choose == 1)//"PriceLowToHigh"
+                {
+                    response.ProductList = response.ProductList.OrderBy(x => x.PromotePrice).ToList();
+                }
+                else if (request.Choose == 2)//"PriceHighToLow"
+                {
+                    response.ProductList = response.ProductList.OrderByDescending(x => x.PromotePrice).ToList();
+                }
+                else if (request.Choose == 3)//"LatestProduct"
+                {
+                    response.ProductList = response.ProductList.OrderByDescending(x => x.CreatedDate).ToList();
+                }
+                else if (request.Choose == 4)//"SellingProduct"
+                {
+                    response.ProductList = response.ProductList.OrderByDescending(x => x.OrderCount).ToList();
+                }
+                }
+                else{
+                    if (request.Choose == 1)//"PriceLowToHigh"
                 {
                     response.ProductList = response.ProductList.OrderBy(x => x.OriginalPrice).ToList();
                 }
@@ -3190,6 +3221,9 @@ namespace MayMayShop.API.Repos
                 {
                     response.ProductList = response.ProductList.OrderByDescending(x => x.OrderCount).ToList();
                 }
+                }
+                response.ProductList=response.ProductList.Skip((request.PageNumber-1)*request.PageSize).Take(request.PageSize).ToList();
+                
             }
 
             return response;
