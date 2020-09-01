@@ -361,9 +361,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetLandingProductCategory")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
 
         public async Task<IActionResult> GetLandingProductCategory([FromQuery]GetLandingProductCategoryRequest request)
         {
@@ -433,9 +433,9 @@ namespace MayMayShop.API.Controllers
         }
        
         [HttpGet("GetProductList")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
 
         public async Task<IActionResult> GetProductList([FromQuery]GetProductListRequest request)
         {
