@@ -625,5 +625,23 @@ namespace MayMayShop.API.Controllers
             }
         }
 
+        [HttpGet("GetBrand")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetBrand()
+        {
+            try
+            {
+                var response = await _repo.GetBrand();
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
     }
 }

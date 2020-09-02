@@ -821,7 +821,7 @@ namespace MayMayShop.API.Repos
         }
         public async Task<PostOrderByKBZPayResponse> RedeemOrderByKBZPay(RedeemOrderRequest req, int userId, string token)
         {
-            var transactionID= System.Guid.NewGuid().ToString();
+            var transactionID= System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
             OrderTransaction transaction = new OrderTransaction(){
                 Id= transactionID,
                 TransactionData = JsonConvert.SerializeObject(req),

@@ -35,6 +35,7 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<GetBannerResponse> GetBannerById(int id);
         Task<List<GetBannerResponse>> GetBannerList(int bannerType);
         Task<List<GetBannerLinkResponse>> GetBannerLink();
-        
+
+        Task<List<GetBrandResponse>> GetBrand();
     }
 }

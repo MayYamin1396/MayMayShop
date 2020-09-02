@@ -100,6 +100,9 @@ namespace MayMayShop.API.Context
         public virtual DbSet<SearchKeyword> SearchKeyword {get;set;}
         public virtual DbSet<SearchKeywordTrns> SearchKeywordTrns {get;set;}
 
+        //new table
+        public virtual DbSet<Brand> Brand {get;set;}
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var cascadeFKs = modelBuilder.Model.GetEntityTypes()
@@ -158,7 +161,7 @@ namespace MayMayShop.API.Context
                 .HasKey(k => new {k.ProductId, k.TagId});
 
             modelBuilder.Entity<ProductClip>()
-                .HasKey(k => new {k.Name, k.ProductId});       
+                .HasKey(k => new {k.Name, k.ProductId});     
             
             base.OnModelCreating(modelBuilder);
         }

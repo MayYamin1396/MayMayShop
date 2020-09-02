@@ -15,6 +15,7 @@ namespace MayMayShop.API.Dtos.ProductDto
         public List<Tag> TagsList {get;set;}
         public int PromotionId {get;set;}
         public int Promotion {get;set;}
+        public int BrandId {get;set;}
         public ProductClipRequest ProductClip {get;set;}
         public List<ImageRequest> ImageList { get; set; }  
         public List<Sku> Sku { get; set; }

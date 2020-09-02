@@ -400,7 +400,8 @@ namespace MayMayShop.API.Repos
                         CreatedDate = DateTime.Now,
                         CreatedBy = currentLoginID,
                         ProductCategoryId = trnProduct.ProductCategoryId,
-                        Description = req.Description
+                        Description = req.Description,
+                        BrandId = req.BrandId
                     };
                     await _context.Product.AddAsync(productToAdd);
                     await _context.SaveChangesAsync();
@@ -653,6 +654,7 @@ namespace MayMayShop.API.Repos
                     product.Description=req.Description;
                     product.UpdatedDate=DateTime.Now;
                     product.UpdatedBy=currentLoginID;
+                    product.BrandId = req.BrandId;
                     
                     #endregion
 
@@ -2954,8 +2956,8 @@ namespace MayMayShop.API.Repos
                     var searchTrn=await _context.SearchKeywordTrns
                                 .Where(x=>x.SearchKeywordId==exitKeyword.Id
                                 && x.CreatedDate.Date==DateTime.Now.Date)
-                                .SingleOrDefaultAsync();
-                    if (searchTrn==null)
+                                .ToListAsync();
+                    if (searchTrn.Count()==0)
                     {
                         var newKeywordTrn=new SearchKeywordTrns(){
                         SearchKeywordId=exitKeyword.Id,
@@ -2965,7 +2967,7 @@ namespace MayMayShop.API.Repos
                     _context.SearchKeywordTrns.Add(newKeywordTrn);
                     }
                     else{
-                        searchTrn.Count=searchTrn.Count+1;
+                        searchTrn.FirstOrDefault().Count=searchTrn.Count+1;
                     }
                     await _context.SaveChangesAsync();
                 }
@@ -3687,6 +3689,74 @@ namespace MayMayShop.API.Repos
             return await _context.ProductImage
                     .Where(x=>x.ProductId==productId)
                     .ToListAsync();
+        }
+
+        public async Task<GetProductByBrandResponse> GetProductByBrand(GetProductByBrandRequest request)
+        {
+            //product id that qty is 0 or less than 0.
+            var productSkuIDs= await (from sku in _context.ProductSku
+                                group sku by sku.ProductId into newSku
+                                select new
+                                {
+                                ProductId = newSku.Key,
+                                TotalQty = newSku.Sum(x => x.Qty), 
+                                })
+                                .Where(x=>x.TotalQty<=0)
+                                .Select(x=>x.ProductId)
+                                .ToArrayAsync();
+
+            GetProductByBrandResponse resp = new GetProductByBrandResponse();
+            var brand = await _context.Brand.Where(x =>x.Id == request.BrandId).SingleOrDefaultAsync();
+            if (brand != null)
+            {
+                resp.BrandLogo = brand.LogoUrl;
+                resp.BrandName = brand.Name;
+                resp.Url = brand.Url;
+            }
+
+            var products= await _context.Product
+                        .Include(x=>x.ProductImage)
+                        .Include(x=>x.ProductPrice)
+                        .Where(x=> x.BrandId == request.BrandId 
+                                && x.IsActive==true
+                                && !productSkuIDs.Contains(x.Id)
+                            )
+                        .OrderByDescending(x=>x.CreatedDate)
+                        .Skip((request.PageNumber-1)*request.PageSize)
+                        .Take(request.PageSize)
+                        .ToListAsync();
+            var productList = new List<BrandProduct>();
+            
+            foreach(var p in products)
+            {
+                var productPromote = await _context.ProductPromotion
+                                                .Where(x => x.ProductId == p.Id)
+                                                .FirstOrDefaultAsync();
+
+                var data= new BrandProduct(){
+                    ProductId=p.Id,
+                    Url=p.ProductImage.Where(x=>x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                    Name=p.Name,
+                    OriginalPrice=p.ProductPrice.Select(x=>x.Price).SingleOrDefault(),
+                    CreatedDate=p.CreatedDate,
+                };
+
+                if (productPromote != null)
+                {
+                    data.PromotePrice = productPromote.TotalAmt;
+                    data.PromotePercent = productPromote.Percent;
+                }
+                else
+                {
+                    data.PromotePrice = 0;
+                    data.PromotePercent = 0;
+                }
+
+                productList.Add(data);
+            }
+
+            resp.Products = productList;
+            return resp;
         }
     }
 }

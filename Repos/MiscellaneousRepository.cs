@@ -528,5 +528,15 @@ namespace MayMayShop.API.Repos
                         Name=x.Name,
                     }).ToListAsync();
         }
+
+        public async Task<List<GetBrandResponse>> GetBrand()
+        {
+            return await _context.Brand.Select(x=>new GetBrandResponse{
+                Id=x.Id,
+                Name=x.Name,
+                LogoUrl = x.LogoUrl,
+                Url=x.Url,               
+            }).OrderBy(x=>x.Id).ToListAsync();
+        }
     }
 }
