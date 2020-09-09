@@ -83,6 +83,70 @@ namespace MayMayShop.API.Services
             return imgUrlResponse;
         }
 
+        public async Task<ImageUrlResponse> UploadToS3NoFixedSize(string base64encodedstring, string ext, string folder)
+        {
+            var imgUrlResponse = new ImageUrlResponse();
+
+            using (var client = new AmazonS3Client(MayMayShopConst.AWS_KEY,
+                        MayMayShopConst.AWS_SECRET, RegionEndpoint.APSoutheast1))
+            {
+                var bytes = Convert.FromBase64String(base64encodedstring);
+                using (var memoryStream = new MemoryStream(bytes))
+                {
+
+                    using (var img = Image.FromStream(memoryStream))
+                    {
+                        MemoryStream memoryStreamForThumbnail = new MemoryStream();
+                        MemoryStream memoryStreamForImg = new MemoryStream();
+
+                        // Image thumbnail = this.FixedSize(img, 481, 481);
+                        // Image  = this.FixedSize(img, 1080, 1080);
+                        // Image thumbnail = img;
+                        Image fullSize = img;
+                        // thumbnail.Save(memoryStreamForThumbnail, ImageFormat.Jpeg);
+                        fullSize.Save(memoryStreamForImg, ImageFormat.Jpeg);
+
+                        Guid fileNameForThumbnail = Guid.NewGuid();
+                        Guid fileNameForFullSize = Guid.NewGuid();
+
+                        // //For Thumbnail
+                        // var uploadRequestForThumbnail = new TransferUtilityUploadRequest
+                        // {
+                        //     InputStream = memoryStreamForThumbnail,
+                        //     Key = MayMayShopConst.AWS_KEY_PATH +"/" + folder + "/" + fileNameForThumbnail + '.' + ext,
+                        //     BucketName = "aws-mhs-bucket",
+                        //     CannedACL = S3CannedACL.PublicRead
+                        // };
+
+                        //For Full Size
+                        var uploadRequestForFullSize = new TransferUtilityUploadRequest
+                        {
+                            InputStream = memoryStreamForImg,
+                            Key = MayMayShopConst.AWS_KEY_PATH +"/" + folder + "/" + fileNameForFullSize + '.' + ext,
+                            BucketName = "aws-mhs-bucket",
+                            CannedACL = S3CannedACL.PublicRead
+                        };
+
+                        var fileTransferUtility = new TransferUtility(client);
+
+                        // await fileTransferUtility.UploadAsync(uploadRequestForThumbnail);
+                        // imgUrlResponse.ThumbnailPath = MayMayShopConst.AWS_STATIC_IMG_PATH + folder + "/" + 
+                        //     fileNameForThumbnail + '.' + ext;
+
+                        await fileTransferUtility.UploadAsync(uploadRequestForFullSize);
+                        imgUrlResponse.ImgPath = MayMayShopConst.AWS_STATIC_IMG_PATH + folder + "/" + 
+                            fileNameForFullSize + '.' + ext;
+                    }
+
+                    memoryStream.Flush();
+                }
+            }
+
+            return imgUrlResponse;
+        }
+
+
+
         public Image FixedSize(Image imgPhoto, int width, int height)
         {
             int sourceWidth = imgPhoto.Width;

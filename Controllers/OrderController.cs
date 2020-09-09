@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using MayMayShop.API.Interfaces.Repos;
 using AutoMapper;
 using MayMayShop.API.Interfaces.Services;
-using DinkToPdf.Contracts;
 using log4net;
 using Microsoft.AspNetCore.Authorization;
 using MayMayShop.API.Helpers;
@@ -12,7 +11,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.IO;
-using GemBox.Document;
 using System.Net.Http;
 using System.Net;
 using MayMayShop.API.Const;
@@ -32,15 +30,11 @@ namespace MayMayShop.API.Controllers
         private readonly IMayMayShopServices _services;
 
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private IConverter _converter;
-
-        public OrderController(IOrderRepository repo, IMapper mapper, IMayMayShopServices services,IConverter converter)
+        public OrderController(IOrderRepository repo, IMapper mapper, IMayMayShopServices services)
         {
             _repo = repo;
             _mapper = mapper;
             _services = services;
-            _converter = converter;
         }
    
         [HttpPost("AddToCart")]
@@ -359,6 +353,26 @@ namespace MayMayShop.API.Controllers
             }
         }
 
+        [HttpPost("PostOrderByWavePay")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> PostOrderByWavePay(PostOrderRequest request)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                string token = Request.Headers["Authorization"];
+                var response= await _repo.PostOrderByWavePay(request,userId,token);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
         [HttpPost("UpdateProductCart")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]
@@ -416,7 +430,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetOrderHistorySeller(request);
                 if (response == null || response.Count == 0)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return StatusCode(StatusCodes.Status400BadRequest,"No Result Found!");
                 }
                 return Ok(response);
             }
@@ -440,7 +454,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetNotificationBuyer(request,userId, token);
                 if (response == null || response.Count == 0)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {StatusCodes.Status400BadRequest, message = "No Result Found!" });
                 }
                 return Ok(response);
             }
@@ -464,7 +478,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetNotificationSeller(request,userId, token);
                 if (response == null || response.Count == 0)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {StatusCodes.Status400BadRequest, message = "No Result Found!" });
                 }
                 return Ok(response);
             }
@@ -929,79 +943,6 @@ namespace MayMayShop.API.Controllers
             }
         }
 
-        [HttpGet("voucherprint")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
-        public async Task<IActionResult> VoucherPrint(int id)
-        {
-            ComponentInfo.SetLicense("FREE-LIMITED-KEY");
-
-            var html = @"
-            <html>
-            <style>
-            @page {
-                size: A5 landscape;
-                margin: 6cm 1cm 1cm;
-                mso-header-margin: 1cm;
-                mso-footer-margin: 1cm;
-            }
-
-            body {
-                background: #EDEDED;
-                border: 1pt solid black;
-                padding: 20pt;
-            }
-
-            br {
-                page-break-before: always;
-            }
-
-            p { margin: 0; }
-            header { color: #FF0000; text-align: center; }
-            main { color: #00B050; }
-            footer { color: #0070C0; text-align: right; }
-            </style>
-
-            <body>
-            <header>
-                <p>Header text.</p>
-            </header>
-            <main>
-                <p>First page.</p>
-                <br>
-                <p>Second page.</p>
-                <br>
-                <p>Third page.</p>
-                <br>
-                <p>Fourth page.</p>
-            </main>
-            <footer>
-                <p>Footer text.</p>
-                <p>Page <span style='mso-field-code:PAGE'>1</span> of <span style='mso-field-code:NUMPAGES'>1</span></p>
-            </footer>
-            </body>
-            </html>";
-
-        var htmlLoadOptions = new HtmlLoadOptions();
-        using (var htmlStream = new MemoryStream(htmlLoadOptions.Encoding.GetBytes(html)))
-        {
-            // Load input HTML text as stream.
-            var document = DocumentModel.Load(htmlStream, htmlLoadOptions);
-            // Save output PDF file.
-            // document.Save("Output.pdf");
-            
-            //return File(DocumentModel.Load(htmlStream, htmlLoadOptions), "application/pdf");
-            var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
-
-            // Stream document to browser in DOCX format.
-            document.Save(responseMessage, "Document.pdf");
-            return Ok(responseMessage);
-        }
-
-            
-        }
-        
         [HttpGet("GetVoucher")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]
@@ -1039,5 +980,22 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
+    
+        [HttpGet("CallBackKPayNotify")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CallBackKPayNotify(string transactionId)
+        {
+            try
+            {
+                var response = await _repo.CallBackKPayNotify(transactionId);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+    
     }
 }

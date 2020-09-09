@@ -17,6 +17,7 @@ using MayMayShop.API.Helpers;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using MayMayShop.API.Dtos.MembershipDto;
+using MayMayShop.API.Dtos.GatewayDto;
 
 namespace MayMayShop.API.Repos
 {
@@ -2809,6 +2810,7 @@ namespace MayMayShop.API.Repos
                         PostOrderResponse resp =await PostOrder(request,userId,token,platform) ;
                         if(resp.StatusCode==StatusCodes.Status200OK)
                         {
+                            _context.OrderTransaction.Remove(transaction);
                             transaction.OrderId=resp.OrderId;
                             response.StatusCode=StatusCodes.Status200OK;
                             response.Message="အောင်မြင်သည်။";
@@ -3014,6 +3016,66 @@ namespace MayMayShop.API.Repos
             response.ItemList=orderDetail;
             response.QRCode=QRCodeHelper.GenerateQRCode(MayMayShopConst.COMPANY_ORDER_DETAIL_URL+OrderId);           
 
+            return response;
+        }
+        public async Task<bool> CallBackKPayNotify(string transactionId)
+        {
+            var trans=await _context.OrderTransaction
+            .Where(x=>x.Id==transactionId)
+            .SingleOrDefaultAsync();
+            if(trans!=null && trans.OrderId!=null && trans.OrderId>0)
+            {
+                return await _context.Order
+                .AnyAsync(x=>x.Id==trans.OrderId);
+            }
+            else{
+                return false;
+            }
+        }
+
+        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
+        {
+            var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
+            OrderTransaction transaction = new OrderTransaction(){
+                Id= transactionID,
+                TransactionData = JsonConvert.SerializeObject(req),
+                CreatedBy = userId,
+                CreatedDate = DateTime.Now
+            };
+            _context.OrderTransaction.Add(transaction);
+            await _context.SaveChangesAsync();
+            List<ProductItem> items = new List<ProductItem>();
+            foreach (var item in req.ProductInfo)
+            {
+                string productName = "";
+                double amt = 0;
+                var product = new ProductItem();
+                if (item.Qty > 1)
+                {
+                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
+                    productName = productName+ "  x   "+item.Qty;
+                    amt = item.Price * item.Qty;
+                    product.Name = productName;
+                    product.Amount = amt;
+                }else{
+                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
+                    amt = item.Price;
+                    product.Name = productName;
+                    product.Amount = amt;
+                }
+                items.Add(product);
+            }
+            var payment_description = req.PaymentInfo.Remark;
+
+            // var waverequest = new WavePrecreateRequest(){
+            //     TransactionId = transactionID,
+            //     NetAmount = req.NetAmt,
+            //     Items = items,
+            //     payment_description = req.PaymentInfo.Remark
+            // };
+
+            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
+            response.TransactionId = transaction.Id;
             return response;
         }
     }

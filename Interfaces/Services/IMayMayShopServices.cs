@@ -14,7 +14,7 @@ namespace MayMayShop.API.Interfaces.Services
     public interface IMayMayShopServices
     {
         Task<ImageUrlResponse> UploadToS3(string encodedBase64, string ext, string folder);
-
+        Task<ImageUrlResponse> UploadToS3NoFixedSize(string encodedBase64, string ext, string folder);  
         Image FixedSize(Image imgPhoto, int width, int height);
         Task DeleteFromS3(string ImgPath, string ThumbnailPath);
         DataTable ToDataTable(Stream s,string sheetName);

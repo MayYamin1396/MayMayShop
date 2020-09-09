@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using MayMayShop.API.Dtos.OrderDto;
 using log4net;
+using System.Collections.Generic;
 
 namespace MayMayShop.API.Services
 {
@@ -187,5 +188,61 @@ namespace MayMayShop.API.Services
 
             return nonceString.ToString().ToUpper();
         }
+
+        //-----------------WAVE PAY-------------------//
+
+        public async Task<PostOrderByWavePayResponse> WavePayPrecreate(string TransactionId,double NetAmount, List<ProductItem> Items, string payment_description)
+        {
+            var result = new PostOrderByWavePayResponse();
+
+            var request = new WavePrecreateRequest{
+                time_to_live_in_seconds = MayMayShopConst.WAVE_TIME_TO_LIVE_IN_SECONDS,
+                merchant_id = MayMayShopConst.WAVE_MERCHANT_ID,
+                order_id = TransactionId,
+                merchant_reference_id = TransactionId,
+                frontend_result_url = MayMayShopConst.WAVE_FRONTEND_RESULT_URL,
+                backend_result_url = MayMayShopConst.WAVE_BACKEND_RESULT_URL,
+                amount = NetAmount,
+                payment_description = payment_description,
+                merchant_name = MayMayShopConst.WAVE_MERCHANT_NAME,
+                items = Items,
+                hash = null,
+            };
+            request.hash = GenerateSHA256Hash_WaveOrder(request);
+
+            var json = JsonConvert.SerializeObject(request);
+
+            log.Info("Request => " + json);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(MayMayShopConst.WAVE_URI, data);
+
+            log.Info("Response => " + response);
+            result = JsonConvert
+                .DeserializeObject<PostOrderByWavePayResponse>(response.Content.ReadAsStringAsync().Result);
+            
+            log.Info("Response => " + JsonConvert.SerializeObject(result));    
+            return result;
+        }
+        private string GenerateSHA256Hash_WaveOrder(WavePrecreateRequest req)
+        {
+            var ret = new StringBuilder();
+
+            ret.Append("time_to_live_in_seconds=" + req.time_to_live_in_seconds + "&");
+            ret.Append("merchant_id=" + req.merchant_id + "&");
+            ret.Append("order_id=" + req.order_id + "&");
+            ret.Append("amount=" + req.amount + "&");
+            ret.Append("backend_result_url=" + req.backend_result_url + "&");
+            ret.Append("merchant_reference_id=" + req.merchant_reference_id + "&");
+            ret.Append("key=" + MayMayShopConst.WAVE_SECRET_KEY);
+
+            var abc = ret.ToString();
+
+            var hash = GetSHA256(ret.ToString());
+
+            return hash;
+        }
+
+
     }
 }

@@ -26,6 +26,8 @@ namespace MayMayShop.API.Const
         public readonly static string PARAM_COMPANY_PROFILE = PARAM_APPLICATION + ".companyProfile";
         public readonly static string PARAM_KBZ_GATEWAY = PARAM_APPLICATION + ".KBZGateway";
 
+        public readonly static string PARAM_WAVE_PAY = PARAM_APPLICATION + ".WavePay";
+
         public static readonly Regex MOBILE_NO_REGEX = new Regex("((^(9|8))[0-9]{7})$");
         public const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH\\:mm\\:ss.fffffffzzz";
         public const string TIME_FORMAT = @"hh\:mm\:ss";
@@ -164,6 +166,17 @@ namespace MayMayShop.API.Const
         public static string KBZ_GATEWAY_QUERYORDER_METHOD{get;set;}
         public static string KBZ_GATEWAY_QUERYORDER_VERSION{get;set;}
 
+
+        //----WAVE PAY----//
+        public static string WAVE_URI {get;set;}
+        public static string WAVE_MERCHANT_ID {get;set;}
+        public static string WAVE_SECRET_KEY {get;set;}
+        public static string WAVE_FRONTEND_RESULT_URL {get;set;}
+        public static string WAVE_BACKEND_RESULT_URL {get;set;}
+        public static string WAVE_MERCHANT_NAME {get;set;}
+        public static int WAVE_TIME_TO_LIVE_IN_SECONDS{get;set;}
+        //-----------------------------------------------------//
+
         public static int APPLICATION_CONFIG_ID=0;
         
         public static int BEST_SELLER_DURATION;
@@ -285,6 +298,14 @@ namespace MayMayShop.API.Const
             KBZ_GATEWAY_QUERYORDER_URI = ConfigFacade.ApplicationConfig.GetParameter(PARAM_KBZ_GATEWAY + ".queryorderuri");
             KBZ_GATEWAY_QUERYORDER_METHOD = ConfigFacade.ApplicationConfig.GetParameter(PARAM_KBZ_GATEWAY + ".queryordermethod");
             KBZ_GATEWAY_QUERYORDER_VERSION = ConfigFacade.ApplicationConfig.GetParameter(PARAM_KBZ_GATEWAY + ".queryorderversion");
+
+            WAVE_URI = ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".uri");
+            WAVE_MERCHANT_ID = ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".merch_Id");
+            WAVE_SECRET_KEY = ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".key");
+            WAVE_FRONTEND_RESULT_URL = ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".frontend_url");
+            WAVE_BACKEND_RESULT_URL = ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".backend_url");
+            WAVE_MERCHANT_NAME = ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".merch_name");
+            WAVE_TIME_TO_LIVE_IN_SECONDS = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_WAVE_PAY + ".time"));
 
             ORDER_STATUS_ORDER =int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ORDERSTATUS + ".order"));
             ORDER_STATUS_TAKE = int.Parse(ConfigFacade.ApplicationConfig.GetParameter(PARAM_ORDERSTATUS + ".take"));
