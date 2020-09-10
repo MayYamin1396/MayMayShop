@@ -361,9 +361,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetLandingProductCategory")]
-        // [Authorize]
-        // [ServiceFilter(typeof(ActionActivity))]
-        // [ServiceFilter(typeof(ActionActivityLog))]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
 
         public async Task<IActionResult> GetLandingProductCategory([FromQuery]GetLandingProductCategoryRequest request)
         {
@@ -433,9 +433,9 @@ namespace MayMayShop.API.Controllers
         }
        
         [HttpGet("GetProductList")]
-        // [Authorize]
-        // [ServiceFilter(typeof(ActionActivity))]
-        // [ServiceFilter(typeof(ActionActivityLog))]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
 
         public async Task<IActionResult> GetProductList([FromQuery]GetProductListRequest request)
         {
@@ -601,9 +601,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetBestSellingProduct")]
-        // [Authorize]
-        // [ServiceFilter(typeof(ActionActivity))]
-        // [ServiceFilter(typeof(ActionActivityLog))]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
 
         public async Task<IActionResult> GetBestSellingProduct([FromQuery]GetBestSellingProductRequest request)
         {
@@ -653,26 +653,6 @@ namespace MayMayShop.API.Controllers
                 return Ok(response);
             }
             catch (Exception e)
-            {
-                log.Error(e.Message);
-                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
-            }
-        }
-
-        [HttpGet("GetProductByBrand")]
-        public async Task<IActionResult> GetProductByBrand([FromQuery]GetProductByBrandRequest request)
-        {
-            try
-            {
-                var response = await _repo.GetProductByBrand(request);
-                if (response == null)
-                {
-                    return Ok(new { message = "No Result Found!" });
-                }               
-                return Ok(response);
-
-            }
-            catch(Exception e)
             {
                 log.Error(e.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);

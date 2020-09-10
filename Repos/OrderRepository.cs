@@ -23,7 +23,7 @@ namespace MayMayShop.API.Repos
 {
     public class OrderRepository : IOrderRepository
     {
-        private readonly MayMayShopContext _context;
+       private readonly MayMayShopContext _context;
 
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -658,55 +658,49 @@ namespace MayMayShop.API.Repos
                         OrderStatusId = MayMayShopConst.ORDER_STATUS_ORDER, // orderd
                         OrderUserId = userId,
                         PlatformId=platform
-                    };
-
-                    //if payment by KPAY set is delete true, after finished payment will set is delete to false.
-                    // if(req.PaymentInfo.PaymentServiceId == 2)
-                    // {
-                    //     orderToAdd.IsDeleted = true;
-                    // }                
+                    };             
 
                     await _context.Order.AddAsync(orderToAdd);
                     await _context.SaveChangesAsync();
 
                     #region  Activity Log
-                    try{
-                        ActivityLog data=new ActivityLog(){
-                            UserId=userId,
-                            ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_ORDER,
-                            Value=voucherNo,
-                            CreatedBy=userId,
-                            CreatedDate=DateTime.Now,
-                            PlatformId=platform
-                        };
-                        _context.ActivityLog.Add(data);
-                        await _context.SaveChangesAsync();
-                    }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
+                    // try{
+                    //     ActivityLog data=new ActivityLog(){
+                    //         UserId=userId,
+                    //         ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_ORDER,
+                    //         Value=voucherNo,
+                    //         CreatedBy=userId,
+                    //         CreatedDate=DateTime.Now,
+                    //         PlatformId=platform
+                    //     };
+                    //     _context.ActivityLog.Add(data);
+                    //     await _context.SaveChangesAsync();
+                    // }
+                    // catch(Exception ex)
+                    // {
+                    //     log.Error(string.Format("erorr=> {0}, inner exception=> {1}",ex.Message,ex.InnerException.Message));
+                    // }
                     #endregion
 
-                    List<ReceivedMemberPointProductCategory> cateListPM=new List<ReceivedMemberPointProductCategory>();
+                    //List<ReceivedMemberPointProductCategory> cateListPM=new List<ReceivedMemberPointProductCategory>();
 
                     foreach (var item in req.ProductInfo)
                     {
-                        var cID=await _context.Product.Where(x=>x.Id==item.ProductId).Select(x=>x.ProductCategoryId).SingleOrDefaultAsync();
+                        // var cID=await _context.Product.Where(x=>x.Id==item.ProductId).Select(x=>x.ProductCategoryId).SingleOrDefaultAsync();
                         
-                        var catePM= cateListPM.Where(x=>x.ProductCategoryId==cID).SingleOrDefault();
+                        // var catePM= cateListPM.Where(x=>x.ProductCategoryId==cID).SingleOrDefault();
 
-                        if(catePM==null)
-                        {
-                            var newCatePM=new ReceivedMemberPointProductCategory(){
-                                ProductCategoryId=cID,
-                                TotalAmount=item.Price * item.Qty
-                            };
-                            cateListPM.Add(newCatePM);
-                        }
-                        else{
-                            catePM.TotalAmount+=item.Price * item.Qty;
-                        }
+                        // if(catePM==null)
+                        // {
+                        //     var newCatePM=new ReceivedMemberPointProductCategory(){
+                        //         ProductCategoryId=cID,
+                        //         TotalAmount=item.Price * item.Qty
+                        //     };
+                        //     cateListPM.Add(newCatePM);
+                        // }
+                        // else{
+                        //     catePM.TotalAmount+=item.Price * item.Qty;
+                        // }
 
                         var orderDetailToAdd = new OrderDetail
                         {
@@ -720,19 +714,22 @@ namespace MayMayShop.API.Repos
                         if (skuProductQty != null)
                         {
                             skuProductQty.Qty = skuProductQty.Qty - item.Qty;
-                            await _context.SaveChangesAsync();
+                            // await _context.SaveChangesAsync();
                         }
                         await _context.OrderDetail.AddAsync(orderDetailToAdd);
                     }
 
-                    ReceivedMemberPointRequest recPMReq=new ReceivedMemberPointRequest(){
-                    UserId=userId,
-                    VoucherNo=voucherNo,
-                    ProductCategory=cateListPM,
-                    ApplicationConfigId=MayMayShopConst.APPLICATION_CONFIG_ID
-                };
+                    // save changes for order detail and product sku
+                    await _context.SaveChangesAsync();
 
-                await _memberPointRepo.ReceivedMemberPoint(recPMReq,token);
+                //     ReceivedMemberPointRequest recPMReq=new ReceivedMemberPointRequest(){
+                //     UserId=userId,
+                //     VoucherNo=voucherNo,
+                //     ProductCategory=cateListPM,
+                //     ApplicationConfigId=MayMayShopConst.APPLICATION_CONFIG_ID
+                // };
+
+                // await _memberPointRepo.ReceivedMemberPoint(recPMReq,token);
 
                     #endregion
                 
@@ -795,22 +792,6 @@ namespace MayMayShop.API.Repos
                             };
                             await _context.OrderPaymentInfo.AddAsync(orderPaymentInfoToAdd);
 
-                            // await _context.SaveChangesAsync();
-                            // if(req.PaymentInfo.ApprovalImage!=null && req.PaymentInfo.ApprovalImage.Count>0)
-                            // {
-                            //     foreach(var item in req.PaymentInfo.ApprovalImage)
-                            //     {
-                            //         var res =(await _services.UploadToS3(item.ApprovalImage , item.ApprovalImageExtension, "order"));   
-                                        
-                            //         PaySlip paySlip=new PaySlip(){
-                            //                         Url=res.ImgPath,
-                            //                         OrderPaymentInfoId=orderPaymentInfoToAdd.Id
-                            //                         };
-                            //         _context.PaySlip.Add(paySlip);
-                            //         await _context.SaveChangesAsync();
-                            //     }
-                            // }
-                            
                         }
 
                         //if payment not COD
@@ -833,58 +814,48 @@ namespace MayMayShop.API.Repos
                             }
 
                             await _context.OrderPaymentInfo.AddAsync(orderPaymentInfoToAdd);
-
-                            // await _context.SaveChangesAsync();
-                            // if(req.PaymentInfo.ApprovalImage!=null && req.PaymentInfo.ApprovalImage.Count>0)
-                            // {
-                            //     foreach(var item in req.PaymentInfo.ApprovalImage)
-                            //     {
-                            //         var res =(await _services.UploadToS3(item.ApprovalImage , item.ApprovalImageExtension, "order"));   
-                                        
-                            //         PaySlip paySlip=new PaySlip(){
-                            //                         Url=res.ImgPath,
-                            //                         OrderPaymentInfoId=orderPaymentInfoToAdd.Id
-                            //                         };
-                            //         _context.PaySlip.Add(paySlip);
-                            //         await _context.SaveChangesAsync();
-                            //     }
-                            // }
                         }
+                        await _context.SaveChangesAsync();
                     }
-
-                        var sellerList = await _userServices.GetAllSellerUserId(token); 
-                        foreach(var seller in sellerList)
-                        {                            
-                            NotificationTemplate notiTemplate = await _context.NotificationTemplate.
-                                Where(a => a.ActionName == "Order").SingleOrDefaultAsync();
-                            var body = notiTemplate.Body.Replace("{userName}", orderDeliveryInfoToAdd.Name);
-                            
-                            Models.Notification notification = new Models.Notification();
-                            notification.Title = notiTemplate.Title;
-                            notification.Body = userId.ToString() + " မှ အော်ဒါမှာယူခဲ့သည်";
-                            notification.UserId = seller.Id; //userId;
-                            notification.ImgUrl = MayMayShopConst.AWS_USER_PROFILE_PATH + userId + ".png";
-                            notification.RedirectAction = MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL;
-                            notification.ReferenceAttribute = orderToAdd.Id.ToString();
-                            notification.CreatedDate = DateTime.Now;
-                            notification.CreatedBy = 1;
-                            await _context.Notification.AddAsync(notification);
-                            await _context.SaveChangesAsync();                            
-                            var test = Helpers.Notification.SendFCMNotification(seller.Id.ToString(),
-                                                                            notiTemplate.Title,
-                                                                            body, seller.Id,
-                                                                            MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL,
-                                                                            orderToAdd.Id,
-                                                                            notification.Id,true);  // true for sending noti to seller
-                            test.GetAwaiter().GetResult();
-
-                        }  
-                        await transaction.CommitAsync();  
-                        response.OrderId = orderToAdd.Id;
-                        response.StatusCode = StatusCodes.Status200OK;
-                        return response;
-                }
                     #endregion
+
+                    #region Noti
+
+                    // var sellerList = await _userServices.GetAllSellerUserId(token);
+                    // NotificationTemplate notiTemplate = await _context.NotificationTemplate
+                    // .Where(a => a.ActionName == "Order").SingleOrDefaultAsync(); 
+                    // foreach(var seller in sellerList)
+                    // { 
+                    //     var body = notiTemplate.Body.Replace("{userName}", orderDeliveryInfoToAdd.Name);
+                        
+                    //     Models.Notification notification = new Models.Notification();
+                    //     notification.Title = notiTemplate.Title;
+                    //     notification.Body = userId.ToString() + " မှ အော်ဒါမှာယူခဲ့သည်";
+                    //     notification.UserId = seller.Id; //userId;
+                    //     notification.ImgUrl = MayMayShopConst.AWS_USER_PROFILE_PATH + userId + ".png";
+                    //     notification.RedirectAction = MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL;
+                    //     notification.ReferenceAttribute = orderToAdd.Id.ToString();
+                    //     notification.CreatedDate = DateTime.Now;
+                    //     notification.CreatedBy = orderToAdd.OrderUserId;
+                    //     await _context.Notification.AddAsync(notification);
+                    //     await _context.SaveChangesAsync();                            
+                    //     var test = Helpers.Notification.SendFCMNotification(seller.Id.ToString(),
+                    //                                                     notiTemplate.Title,
+                    //                                                     body, seller.Id,
+                    //                                                     MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL,
+                    //                                                     orderToAdd.Id,
+                    //                                                     notification.Id,true);  // true for sending noti to seller
+                        
+                    // }  
+                                 
+                #endregion
+
+                    await transaction.CommitAsync();  
+                    response.OrderId = orderToAdd.Id;
+                    response.StatusCode = StatusCodes.Status200OK;
+                    return response;  
+                
+                }
                 
                 catch (Exception e)
                 {
@@ -894,7 +865,130 @@ namespace MayMayShop.API.Repos
                 }           
             }
         }
+        public async Task<ResponseStatus> PostOrderActivity(int orderId, int userId,string token,int platform)
+        {
+            using (var transaction = _context.Database.BeginTransaction())
+            {
+                try
+                {
+                   var response=new ResponseStatus();  
 
+                    var order=await _context.Order
+                    .Where(x=>x.Id==orderId)
+                    .SingleOrDefaultAsync();
+
+                    if(order==null)
+                    {
+                        response.StatusCode=StatusCodes.Status400BadRequest;
+                        response.Message="Order is not found!";
+                        return response;
+                    }
+                   
+                    #region  Activity Log
+                    try{
+                        ActivityLog data=new ActivityLog(){
+                            UserId=userId,
+                            ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_ORDER,
+                            Value=order.VoucherNo,
+                            CreatedBy=userId,
+                            CreatedDate=DateTime.Now,
+                            PlatformId=platform
+                        };
+                        _context.ActivityLog.Add(data);
+                        await _context.SaveChangesAsync();
+                    }
+                    catch(Exception ex)
+                    {
+                        log.Error(string.Format("erorr=> {0}, inner exception=> {1}",ex.Message,ex.InnerException.Message));
+                    }
+                    #endregion
+
+                    #region  MemberPoint
+                    var orderDetail=await _context.OrderDetail
+                    .Where(x=>x.OrderId==orderId)
+                    .ToListAsync();
+
+                    List<ReceivedMemberPointProductCategory> cateListPM=new List<ReceivedMemberPointProductCategory>();
+
+                    foreach (var item in orderDetail)
+                    {
+                        var cID=await _context.Product.Where(x=>x.Id==item.ProductId).Select(x=>x.ProductCategoryId).SingleOrDefaultAsync();
+                        
+                        var catePM= cateListPM.Where(x=>x.ProductCategoryId==cID).SingleOrDefault();
+
+                        if(catePM==null)
+                        {
+                            var newCatePM=new ReceivedMemberPointProductCategory(){
+                                ProductCategoryId=cID,
+                                TotalAmount=item.Price * item.Qty
+                            };
+                            cateListPM.Add(newCatePM);
+                        }
+                        else{
+                            catePM.TotalAmount+=item.Price * item.Qty;
+                        }                       
+                    }
+
+                    ReceivedMemberPointRequest recPMReq=new ReceivedMemberPointRequest(){
+                    UserId=userId,
+                    VoucherNo=order.VoucherNo,
+                    ProductCategory=cateListPM,
+                    ApplicationConfigId=MayMayShopConst.APPLICATION_CONFIG_ID
+                    };
+
+                    await _memberPointRepo.ReceivedMemberPoint(recPMReq,token);
+                    #endregion
+                   
+                    #region Noti
+
+                    var orderDeliveryInfo=await _context.OrderDeliveryInfo
+                    .Where(x=>x.OrderId==orderId)
+                    .SingleOrDefaultAsync();
+
+                    var sellerList = await _userServices.GetAllSellerUserId(token);
+                    NotificationTemplate notiTemplate = await _context.NotificationTemplate
+                    .Where(a => a.ActionName == "Order").SingleOrDefaultAsync(); 
+                    foreach(var seller in sellerList)
+                    { 
+                        var body = notiTemplate.Body.Replace("{userName}", orderDeliveryInfo==null?"":orderDeliveryInfo.Name);
+                        
+                        Models.Notification notification = new Models.Notification();
+                        notification.Title = notiTemplate.Title;
+                        notification.Body = userId.ToString() + " မှ အော်ဒါမှာယူခဲ့သည်";
+                        notification.UserId = seller.Id; //userId;
+                        notification.ImgUrl = MayMayShopConst.AWS_USER_PROFILE_PATH + userId + ".png";
+                        notification.RedirectAction = MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL;
+                        notification.ReferenceAttribute = orderId.ToString();
+                        notification.CreatedDate = DateTime.Now;
+                        notification.CreatedBy = userId;
+                        await _context.Notification.AddAsync(notification);
+                        await _context.SaveChangesAsync();                            
+                        var test = Helpers.Notification.SendFCMNotification(seller.Id.ToString(),
+                                                                        notiTemplate.Title,
+                                                                        body, seller.Id,
+                                                                        MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL,
+                                                                        orderId,
+                                                                        notification.Id,true);  // true for sending noti to seller
+                        
+                    }  
+                            
+                #endregion
+                 await transaction.CommitAsync(); 
+                    response.StatusCode = StatusCodes.Status200OK;
+                    response.Message="Success";
+                    return response;      
+                
+                }
+                
+                catch (Exception e)
+                {
+                    log.Error(e.Message);
+                    transaction.Rollback();
+                    return null;
+                }           
+            }
+        }
+        
         public async Task<ResponseStatus> UpdateProductCart(UpdateProductCartRequest request, int userId)
         {
             foreach (var trnCart in request.ProductCarts)
@@ -1274,7 +1368,9 @@ namespace MayMayShop.API.Repos
                 GetOrderListByProductResponse orderListProduct = new GetOrderListByProductResponse();
                 orderListProduct.ProductName = orderDetails.ProductName;
                 orderListProduct.OrderCount = orderDetails.OrderCount;
-                orderListProduct.TotalQty = orderDetails.TotalQty;
+                orderListProduct.TotalQty = _context.ProductSku
+                                        .Where(x=>x.ProductId==orderDetails.ProductId)
+                                        .Sum(x=>x.Qty);
                 orderListProduct.ProductId = orderDetails.ProductId;
                 var ordDetails = await _context.OrderDetail.Where(x => x.ProductId == orderDetails.ProductId).ToListAsync();
 
@@ -2467,6 +2563,7 @@ namespace MayMayShop.API.Repos
                     var path = await _services.UploadToS3(request.ApprovalImage.ApprovalImage
                        , request.ApprovalImage.ApprovalImageExtension, MayMayShopConst.AWS_ORDER_PATH);
 
+                    var paymentServiceName="";
                     var orderPaymentInfoToAdd = new OrderPaymentInfo
                     {
                         OrderId = order.Id,
@@ -2481,12 +2578,69 @@ namespace MayMayShop.API.Repos
                     if(request.PaymentServiceId==MayMayShopConst.PAYMENT_SERVICE_BANK)  //if pay by bank, we will add bankID in payment service info
                     {
                         orderPaymentInfoToAdd.BankId=request.BankId;
+                         paymentServiceName=await _context.Bank.Where(x=>x.Id==request.BankId).Select(x=>x.Name).SingleOrDefaultAsync();
+                    }
+                    else{
+                        paymentServiceName=await _context.PaymentService.Where(x=>x.Id==request.PaymentServiceId).Select(x=>x.Name).SingleOrDefaultAsync();
                     }
 
                     await _context.OrderPaymentInfo.AddAsync(orderPaymentInfoToAdd);
                     await _context.SaveChangesAsync();
                     response.StatusCode =StatusCodes.Status200OK;
                     response.Message = "Success";
+
+                     #region  Activity Log
+                    try{
+                        ActivityLog data=new ActivityLog(){
+                            UserId=currentUserLogin,
+                            ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_MAKE_PAYMENT,
+                            Value=order.VoucherNo,
+                            CreatedBy=currentUserLogin,
+                            CreatedDate=DateTime.Now,
+                            PlatformId=platform
+                        };
+                        _context.ActivityLog.Add(data);
+                        await _context.SaveChangesAsync();
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                    #endregion
+
+                    #region Noti
+                    var sellerList = await _userServices.GetAllSellerUserId(token); 
+                    var orderUserInfo=await _userServices.GetUserInfo(order.OrderUserId,token);
+                    foreach(var seller in sellerList)
+                    {                            
+                        NotificationTemplate notiTemplate = await _context.NotificationTemplate.
+                            Where(a => a.ActionName == "PaymentAgain").SingleOrDefaultAsync();
+                        var body = notiTemplate.Body.Replace("{userName}", orderUserInfo.Name);
+                        body = notiTemplate.Body.Replace("{orderId}", order.VoucherNo);
+                        body = notiTemplate.Body.Replace("{paymentServiceName}", paymentServiceName);
+                        
+                        Models.Notification notification = new Models.Notification();
+                        notification.Title = notiTemplate.Title;
+                        notification.Body =string.Format("{0} မှ အော်ဒါနံပါတ် {1} အတွက် {2} ဖြင့် ငွေပေးချေခဲ့သည်",order.OrderUserId,order.VoucherNo,paymentServiceName);
+                        notification.UserId = seller.Id; //userId;
+                        notification.ImgUrl = MayMayShopConst.AWS_USER_PROFILE_PATH + order.OrderUserId + ".png";
+                        notification.RedirectAction = MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL;
+                        notification.ReferenceAttribute = order.Id.ToString();
+                        notification.CreatedDate = DateTime.Now;
+                        notification.CreatedBy = currentUserLogin;
+                        await _context.Notification.AddAsync(notification);
+                        await _context.SaveChangesAsync();                            
+                        var test = Helpers.Notification.SendFCMNotification(seller.Id.ToString(),
+                                                                        notiTemplate.Title,
+                                                                        body, seller.Id,
+                                                                        MayMayShopConst.NOTI_REDIRECT_ACTION_ORDER_DETAIL,
+                                                                        order.Id,
+                                                                        notification.Id,true);  // true for sending noti to seller
+                        test.GetAwaiter().GetResult();
+
+                    }  
+                    #endregion              
+
                 }
                 else
                 {
@@ -2687,6 +2841,7 @@ namespace MayMayShop.API.Repos
                     IsApproved = itm.IsApproved,
                     ApproveImg =itm.ApprovalImgUrl, //_context.PaySlip.Where(a=>a.OrderPaymentInfoId==itm.Id).Select(a=>a.Url).ToArray(),
                     Remark = itm.Remark,  
+                    SellerRemark=itm.SellerRemark,
                     BankId=itm.BankId==null?0:itm.BankId,
                     BankName=itm.Bank.Name==null?" ":itm.Bank.Name,
                     BankLogo=itm.Bank.Url==null?" ":itm.Bank.Url,                  
@@ -2777,7 +2932,7 @@ namespace MayMayShop.API.Repos
 
         public async Task<PostOrderByKBZPayResponse> PostOrderByKBZPay(PostOrderRequest req, int userId, string token)
         {
-            var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
+            var transactionID= System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
             OrderTransaction transaction = new OrderTransaction(){
                 Id= transactionID,
                 TransactionData = JsonConvert.SerializeObject(req),
@@ -2792,9 +2947,8 @@ namespace MayMayShop.API.Repos
             return response;
         }
 
-        public async Task<ResponseStatus> CheckKPayStatus(string transactionId, int userId, string token,int platform)
-        {
-            ResponseStatus response = new ResponseStatus();
+        public async Task<PostOrderResponse> CheckKPayStatus(string transactionId, int userId, string token,int platform)
+        {  
 
             var transaction = await _context.OrderTransaction.Where(x => x.Id == transactionId).SingleOrDefaultAsync();
             if (transaction != null)
@@ -2810,27 +2964,35 @@ namespace MayMayShop.API.Repos
                         PostOrderResponse resp =await PostOrder(request,userId,token,platform) ;
                         if(resp.StatusCode==StatusCodes.Status200OK)
                         {
-                            _context.OrderTransaction.Remove(transaction);
                             transaction.OrderId=resp.OrderId;
-                            response.StatusCode=StatusCodes.Status200OK;
-                            response.Message="အောင်မြင်သည်။";
+                            transaction.mm_order_id=kbzQueryOrder.Response.mm_order_id;
+                            await _context.SaveChangesAsync();
+                            
+                            // transaction.OrderId=resp.OrderId;
+                            // response.StatusCode=StatusCodes.Status200OK;
+                            // response.Message="အောင်မြင်သည်။";
+                            return resp;
                         }
                         else{
-                            response.StatusCode=StatusCodes.Status400BadRequest;
-                            response.Message="မအောင်မြင်ပါ။";
+                            transaction.mm_order_id=kbzQueryOrder.Response.mm_order_id;
+                            await _context.SaveChangesAsync();
+                            // response.StatusCode=StatusCodes.Status400BadRequest;
+                            // response.Message="မအောင်မြင်ပါ။";
+                            return resp;
                         }
                     }else
                     {
-                        response.StatusCode=StatusCodes.Status400BadRequest;
-                        response.Message="မအောင်မြင်ပါ။";
+                        // response.StatusCode=StatusCodes.Status400BadRequest;
+                        // response.Message="မအောင်မြင်ပါ။";
+                         return null;
                     }
                 }
             }
             else{
-                response.StatusCode=StatusCodes.Status400BadRequest;
-                response.Message="မအောင်မြင်ပါ။";
+                // response.StatusCode=StatusCodes.Status400BadRequest;
+                // response.Message="မအောင်မြင်ပါ။";
             }
-            return response;
+            return null;
         }
 
         public async Task<List<string>> GetVoucherNoSuggestion(GetVoucherNoSuggestionRequest request)
@@ -3018,6 +3180,7 @@ namespace MayMayShop.API.Repos
 
             return response;
         }
+
         public async Task<bool> CallBackKPayNotify(string transactionId)
         {
             var trans=await _context.OrderTransaction
@@ -3032,7 +3195,6 @@ namespace MayMayShop.API.Repos
                 return false;
             }
         }
-
         public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
         {
             var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
@@ -3053,7 +3215,7 @@ namespace MayMayShop.API.Repos
                 if (item.Qty > 1)
                 {
                     productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
-                    productName = productName+ "  x   "+item.Qty;
+                    productName = productName+ "  x  "+item.Qty;
                     amt = item.Price * item.Qty;
                     product.Name = productName;
                     product.Amount = amt;

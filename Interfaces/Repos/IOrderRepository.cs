@@ -17,9 +17,10 @@ namespace MayMayShop.API.Interfaces.Repos
         Task <ResponseStatus> UpdateDeliveryDateAndTime(UpdateDeliveryDateAndTimeRequest request, int userId,string token);
         Task<GetDeliverySlotResponse> GetDeliverySlot(GetDeliverySlotRequest request,int userId);
         Task<PostOrderResponse> PostOrder(PostOrderRequest req, int userId,string token,int platform);
+        Task<ResponseStatus> PostOrderActivity(int orderId, int userId,string token,int platform);
         Task<PostOrderByKBZPayResponse> PostOrderByKBZPay(PostOrderRequest req,int userId, string token);
-        Task<ResponseStatus> CheckKPayStatus(string transactionId,int userId,string token,int platform);
         Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req,int userId, string token);
+        Task<PostOrderResponse> CheckKPayStatus(string transactionId,int userId,string token,int platform);
         Task <ResponseStatus> UpdateProductCart(UpdateProductCartRequest request, int userId);
         Task<List<GetOrderHistoryResponse>> GetOrderHistory(GetOrderHistoryRequest request);
          Task<List<GetOrderHistoryResponse>> GetOrderHistorySeller(GetOrderHistorySellerRequest request);
@@ -40,7 +41,7 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<List<string>> GetVoucherNoSuggestion(GetVoucherNoSuggestionRequest request);       
         Task<List<string>> GetVoucherNoSuggestionSeller(GetVoucherNoSuggestionSellerRequest request);    
         Task<GetVoucherResponse> GetVoucher(int OrderId,string token);  
-        Task<GetPOSVoucherResponse> GetPOSVoucher(int OrderId,int userId,string token);    
-        Task<bool> CallBackKPayNotify(string transactionId);              
+        Task<GetPOSVoucherResponse> GetPOSVoucher(int OrderId,int userId,string token);
+        Task<bool> CallBackKPayNotify(string transactionId);         
     }
 }

@@ -77,6 +77,8 @@ namespace MayMayShop.API.Helpers
             else{
                 var dataLog=new List<ActivityLog>();
                 var ipID=ipLog.OrderByDescending(x=>x.CreatedDate).FirstOrDefault();
+                ipID.CreatedDate=DateTime.Now;
+                ipID.CreatedBy=userId;
                 dataLog.Add(ipID);
                 var ipLogToRemove = ipLog.Except(dataLog).ToList();
                 _context.ActivityLog.RemoveRange(ipLogToRemove);

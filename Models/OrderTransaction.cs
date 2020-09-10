@@ -11,5 +11,6 @@ namespace MayMayShop.API.Models
         public int CreatedBy {get; set;}
         public DateTime? UpdatedDate {get;set;}
         public int UpdatedBy {get; set;}
+        public string mm_order_id {get;set;}
     }
 }

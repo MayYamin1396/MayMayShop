@@ -18,7 +18,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using MayMayShop.API.Interfaces.Repos;
 using MayMayShop.API.Const;
-using MayMayShop.API.Facade;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using MayMayShop.API.Interfaces.Services;
@@ -54,10 +53,6 @@ namespace MayMayShop
                 var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
                 XmlConfigurator.Configure(logRepository, new FileInfo(Configuration.GetSection("appSettings:log4netFile").Value));
 
-                AppConfig appConfig = new AppConfig(MayMayShopConst.PARAM_APPLICATION);
-                appConfig.Load(Configuration.GetSection("appSettings:appHome").Value
-                    , Configuration.GetSection("appSettings:appSettingFile").Value);
-                ConfigFacade.ApplicationConfig = appConfig;
                 MayMayShopConst.loadConfigData();
 
                 services.AddDbContext<MayMayShopContext>(x => x.UseSqlServer

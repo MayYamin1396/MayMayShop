@@ -228,21 +228,35 @@ namespace MayMayShop.API.Services
         {
             var ret = new StringBuilder();
 
-            ret.Append("time_to_live_in_seconds=" + req.time_to_live_in_seconds + "&");
-            ret.Append("merchant_id=" + req.merchant_id + "&");
-            ret.Append("order_id=" + req.order_id + "&");
-            ret.Append("amount=" + req.amount + "&");
-            ret.Append("backend_result_url=" + req.backend_result_url + "&");
-            ret.Append("merchant_reference_id=" + req.merchant_reference_id + "&");
-            ret.Append("key=" + MayMayShopConst.WAVE_SECRET_KEY);
+            ret.Append("'" + req.time_to_live_in_seconds + "', ");
+            ret.Append("'" + req.merchant_id + "', ");
+            ret.Append("'" + req.order_id + "', ");
+            ret.Append("'" + req.amount + "', ");
+            ret.Append("'" + req.backend_result_url + "', ");
+            ret.Append("'" + req.merchant_reference_id + "', ");
+            ret.Append("'" + MayMayShopConst.WAVE_SECRET_KEY + "'");
 
             var abc = ret.ToString();
+            log.Info("hash => " + abc);
 
-            var hash = GetSHA256(ret.ToString());
+            var hash = GetSHA256Wave(ret.ToString());
 
             return hash;
         }
 
+        private string GetSHA256Wave(string text) 
+        {
+            byte[] message = Encoding.UTF8.GetBytes(text);
+
+            SHA256Managed hashString = new SHA256Managed();
+
+            byte[] hashValue = hashString.ComputeHash(message);
+            string hex = "";
+            foreach (var x in hashValue){
+                hex += string.Format("{0:x2}", x);
+            }
+            return hex;
+        }
 
     }
 }
