@@ -3210,34 +3210,30 @@ namespace MayMayShop.API.Repos
             foreach (var item in req.ProductInfo)
             {
                 string productName = "";
-                double amt = 0;
+                int amt = 0;
                 var product = new ProductItem();
                 if (item.Qty > 1)
                 {
                     productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
                     productName = productName+ "  x  "+item.Qty;
-                    amt = item.Price * item.Qty;
-                    product.Name = productName;
-                    product.Amount = amt;
+                    amt = Convert.ToInt32(item.Price * item.Qty);
+                    product.name = productName;
+                    product.amount = amt;
                 }else{
                     productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
-                    amt = item.Price;
-                    product.Name = productName;
-                    product.Amount = amt;
+                    amt = Convert.ToInt32(item.Price);
+                    product.name = productName;
+                    product.amount = amt;
                 }
                 items.Add(product);
             }
+            if (req.DeliveryFee > 0)
+            {
+                items.Add(new ProductItem{name = "Tax", amount = Convert.ToInt32(req.DeliveryFee)});
+            }
             var payment_description = req.PaymentInfo.Remark;
 
-            // var waverequest = new WavePrecreateRequest(){
-            //     TransactionId = transactionID,
-            //     NetAmount = req.NetAmt,
-            //     Items = items,
-            //     payment_description = req.PaymentInfo.Remark
-            // };
-
             PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
-            response.TransactionId = transaction.Id;
             return response;
         }
     }

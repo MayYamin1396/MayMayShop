@@ -22,6 +22,7 @@ namespace MayMayShop.API.Models
         public bool isMain { get; set; }
 
         public int ProductId { get; set; }
+        public int? SeqNo { get; set; }
 
         public Product Product { get; set; }
 

@@ -10,6 +10,8 @@ using System.Net.Http;
 using MayMayShop.API.Dtos.OrderDto;
 using log4net;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Headers;
 
 namespace MayMayShop.API.Services
 {
@@ -202,60 +204,67 @@ namespace MayMayShop.API.Services
                 merchant_reference_id = TransactionId,
                 frontend_result_url = MayMayShopConst.WAVE_FRONTEND_RESULT_URL,
                 backend_result_url = MayMayShopConst.WAVE_BACKEND_RESULT_URL,
-                amount = NetAmount,
+                amount = Convert.ToInt32(NetAmount),
                 payment_description = payment_description,
                 merchant_name = MayMayShopConst.WAVE_MERCHANT_NAME,
-                items = Items,
+                items = null,
                 hash = null,
             };
+
             request.hash = GenerateSHA256Hash_WaveOrder(request);
 
-            var json = JsonConvert.SerializeObject(request);
+            var itms = JsonConvert.SerializeObject(Items);
+            request.items = itms;
+
+            string json = JsonConvert.SerializeObject(request,Formatting.Indented);
 
             log.Info("Request => " + json);
-            var data = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync(MayMayShopConst.WAVE_URI, data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));//ACCEPT header
 
+            var response = await client.PostAsync(MayMayShopConst.WAVE_URI, content);
             log.Info("Response => " + response);
+
             result = JsonConvert
                 .DeserializeObject<PostOrderByWavePayResponse>(response.Content.ReadAsStringAsync().Result);
+            if (result != null)
+            {
+                result.WaveUrl = MayMayShopConst.WAVE_AUTHENTICATE_URI+"transaction_id="+result.transaction_id;
+            }
             
             log.Info("Response => " + JsonConvert.SerializeObject(result));    
             return result;
         }
         private string GenerateSHA256Hash_WaveOrder(WavePrecreateRequest req)
         {
-            var ret = new StringBuilder();
 
-            ret.Append("'" + req.time_to_live_in_seconds + "', ");
-            ret.Append("'" + req.merchant_id + "', ");
-            ret.Append("'" + req.order_id + "', ");
-            ret.Append("'" + req.amount + "', ");
-            ret.Append("'" + req.backend_result_url + "', ");
-            ret.Append("'" + req.merchant_reference_id + "', ");
-            ret.Append("'" + MayMayShopConst.WAVE_SECRET_KEY + "'");
+            string[] strArry = {       
+                                    (req.time_to_live_in_seconds).ToString(),
+                                    req.merchant_id,
+                                    req.order_id,
+                                    (req.amount).ToString(),
+                                    req.backend_result_url,
+                                    req.merchant_reference_id
+                                };
+            var data=String.Join("", strArry.Where(s => !String.IsNullOrEmpty(s))) ;
 
-            var abc = ret.ToString();
-            log.Info("hash => " + abc);
-
-            var hash = GetSHA256Wave(ret.ToString());
+            var hash = GetSHA256Wave(data);
 
             return hash;
         }
 
-        private string GetSHA256Wave(string text) 
+        private string GetSHA256Wave(string strArray) 
         {
-            byte[] message = Encoding.UTF8.GetBytes(text);
+            var key = MayMayShopConst.WAVE_SECRET_KEY;
+            ASCIIEncoding encoding = new ASCIIEncoding();
+            byte[] keyBytes = encoding.GetBytes(key);
+            byte[] messageBytes = encoding.GetBytes(strArray);
+            System.Security.Cryptography.HMACSHA256 cryptographer = new System.Security.Cryptography.HMACSHA256(keyBytes);
 
-            SHA256Managed hashString = new SHA256Managed();
+            byte[] bytes = cryptographer.ComputeHash(messageBytes);
 
-            byte[] hashValue = hashString.ComputeHash(message);
-            string hex = "";
-            foreach (var x in hashValue){
-                hex += string.Format("{0:x2}", x);
-            }
-            return hex;
+            return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
 
     }

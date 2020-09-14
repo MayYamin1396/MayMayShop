@@ -662,6 +662,7 @@ namespace MayMayShop.API.Repos
 
                     if (imageUrlList.Count > 0)
                     {     
+                        var isMain=true;
                         foreach (var img in imageUrlList)
                         {                   
                             switch(img.Action)
@@ -671,12 +672,14 @@ namespace MayMayShop.API.Repos
                                     {
                                         Url = img.ImgPath,
                                         ThumbnailUrl = img.ThumbnailPath,
-                                        isMain = false,
+                                        isMain = isMain,
                                         CreatedDate = DateTime.Now,
                                         CreatedBy = currentLoginID,
-                                        ProductId = req.ProductId
+                                        ProductId = req.ProductId,
+                                        SeqNo=img.SeqNo
                                     };
                                     await _context.ProductImage.AddAsync(productImage);
+                                    isMain=false;
                                 }; break;
 
                                 case "Edit" : {

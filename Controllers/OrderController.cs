@@ -430,6 +430,55 @@ namespace MayMayShop.API.Controllers
             }
         }
 
+        // [HttpPost("CheckWaveTransactionStatus")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+        // public async Task<IActionResult> CheckWaveTransactionStatus(string status)
+        // {
+        //     try
+        //     {
+        //         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        //         string token = Request.Headers["Authorization"];
+
+        //         // var platform=3;
+        //         // try{
+        //         //     #region Platform 
+        //         //     DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+        //         //     var userAgent = Request.Headers["User-Agent"];
+        //         //     var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+        //         //     var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+        //         //     var agentArray=agent.Split("<br/>");                    
+        //         //     if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+        //         //     {
+        //         //         platform=1; //Android
+        //         //     }
+        //         //     else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+        //         //     {
+        //         //         platform=2; //IOS
+        //         //     }
+        //         //     else{
+        //         //         platform=3; //Web                
+        //         //     } 
+        //         //     #endregion
+        //         //     userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        //         // }
+        //         // catch{
+        //         // }
+        //         var response = await _repo.CheckWaveTransactionStatus(transactionId, userId,token);
+        //         if (response.StatusCode != StatusCodes.Status200OK)
+        //         {
+        //             return StatusCode(response.StatusCode,response);
+        //         }
+        //         return Ok(response);
+        //     }
+        //     catch (Exception e)
+        //     {
+        //         log.Error(e.Message);
+        //         return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+        //     }
+        // }
+
         [HttpPost("UpdateProductCart")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]

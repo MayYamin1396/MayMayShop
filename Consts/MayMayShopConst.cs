@@ -171,6 +171,7 @@ namespace MayMayShop.API.Const
         public static string WAVE_BACKEND_RESULT_URL {get;set;}
         public static string WAVE_MERCHANT_NAME {get;set;}
         public static int WAVE_TIME_TO_LIVE_IN_SECONDS{get;set;}
+        public static string WAVE_AUTHENTICATE_URI {get;set;}
         //-----------------------------------------------------//
 
         public static int APPLICATION_CONFIG_ID=0;
@@ -308,6 +309,7 @@ namespace MayMayShop.API.Const
             WAVE_BACKEND_RESULT_URL = xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".backend_url");
             WAVE_MERCHANT_NAME = xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".merch_name");
             WAVE_TIME_TO_LIVE_IN_SECONDS = int.Parse(xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".time_sec"));
+            WAVE_AUTHENTICATE_URI = xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".authenticate_uri");
 
 
             ORDER_STATUS_ORDER =int.Parse(xmlRetriever.GetParameter(PARAM_ORDERSTATUS + ".order"));

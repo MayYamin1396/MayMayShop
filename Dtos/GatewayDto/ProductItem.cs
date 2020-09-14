@@ -2,7 +2,7 @@ namespace MayMayShop.API.Dtos.GatewayDto
 {
     public class ProductItem
     {
-        public string Name {get;set;}
-        public double Amount {get;set;}
+        public string name {get;set;}
+        public int amount {get;set;}
     }
 }

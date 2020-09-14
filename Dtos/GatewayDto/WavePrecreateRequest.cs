@@ -10,10 +10,10 @@ namespace MayMayShop.API.Dtos.GatewayDto
         public string merchant_reference_id {get;set;}
         public string frontend_result_url {get;set;}
         public string backend_result_url {get;set;}
-        public double amount {get;set;}
+        public int amount {get;set;}
         public string payment_description {get;set;}
         public string merchant_name {get;set;}
-        public List<ProductItem> items {get;set;}
+        public string items {get;set;}
         public string hash {get;set;}
     }
 }

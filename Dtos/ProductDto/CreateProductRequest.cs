@@ -29,6 +29,7 @@ namespace MayMayShop.API.Dtos.ProductDto
         public string ImageContent { get; set; }
         public string Extension { get; set; }
         public string Action {get;set;}
+        public int SeqNo {get;set;}
     }
     public class ProductClipRequest{
         public int ProductId { get; set; }
