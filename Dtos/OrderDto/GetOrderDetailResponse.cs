@@ -125,6 +125,7 @@ namespace MayMayShop.API.Dtos.OrderDto
         public string PhoneNo { get; set; }
 
         public string Remark { get; set; }
+        public string SellerRemark { get; set; }
         public int? BankId {get;set;}       
         public string BankName {get;set;}
         public string BankLogo {get;set;}

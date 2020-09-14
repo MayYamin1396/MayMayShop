@@ -25,7 +25,7 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<ResponseStatus> UpdateSubCategory(UpdateSubCategoryRequest request,int currentUserLogin);
         Task<ResponseStatus> DeleteSubCategory(int productCategoryId,int currentUserLogin);
         Task<GetSubCategoryByIdResponse> GetSubCategoryById(int productCategoryId);
-        Task<ResponseStatus> CreateVariant(CreateVariantRequest request,int currentUserLogin);
+        Task<CreateVariantResponse> CreateVariant(CreateVariantRequest request,int currentUserLogin);
         Task<ResponseStatus> UpdateVariant(UpdateVariantRequest request,int currentUserLogin);
         Task<ResponseStatus> DeleteVariant(int variantId,int currentUserLogin);
         Task<List<GetPolicyResponse>> GetPolicy();
@@ -35,7 +35,9 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<GetBannerResponse> GetBannerById(int id);
         Task<List<GetBannerResponse>> GetBannerList(int bannerType);
         Task<List<GetBannerLinkResponse>> GetBannerLink();
-
+        #region Activity Log API
+        Task<string> GetLastActiveByUserId(int id);
+        #endregion
         Task<List<GetBrandResponse>> GetBrand();
     }
 }

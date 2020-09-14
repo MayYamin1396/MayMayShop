@@ -20,5 +20,6 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<GetCartDetailForRewardResponse> GetCartDetailForReward(int productId,int skuId,int currentUserLogin,string token);
         Task<PostOrderByKBZPayResponse> RedeemOrderByKBZPay(RedeemOrderRequest request,int currentUserLogin,string token);
         Task<List<GetConfigMemberPointProductCategory>> GetProductCategoryForCreateConfigMemberPoint(string token);
+        Task<GetOrderDetailForMemberPoint_MS_Response> GetOrderDetailForMemberPoint_MS(string voucherNo);
     }
 }

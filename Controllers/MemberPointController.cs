@@ -249,5 +249,24 @@ namespace MayMayShop.API.Controllers
             }
         }
 
+        [HttpGet("GetOrderDetailForMemberPoint_MS")]
+        public async Task<IActionResult> GetOrderDetailForMemberPoint_MS(string voucherNo)
+        {
+            try
+            {                         
+                var response = await _memberPointRepo.GetOrderDetailForMemberPoint_MS(voucherNo);
+                if (response == null)
+                {
+                    return Ok(new { message = "No Result Found!" });
+                }               
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
     }
 }

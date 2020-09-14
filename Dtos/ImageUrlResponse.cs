@@ -6,5 +6,6 @@ namespace MayMayShop.API.Dtos
         public string ThumbnailPath { get; set; }
         public int ImageId {get;set;}
         public string Action {get;set;}
+        public int SeqNo {get;set;}
     }
 }

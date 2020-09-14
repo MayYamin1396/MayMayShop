@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace MayMayShop.API.Controllers
 {
@@ -459,11 +460,20 @@ namespace MayMayShop.API.Controllers
                 var currentLoginID = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 if (req.Banners.Count > 0)
                 {
-                    var removestatus = _context.Database.ExecuteSqlCommand("TRUNCATE TABLE [Banner]");
+                    if (req.Banners[0].BannerType == 1)
+                    {
+                        var Banners = _context.Banner.Where(x => x.BannerType == "Banner");
+                        _context.Banner.RemoveRange(Banners);
+                    }else{
+                        var Ads = _context.Banner.Where(x => x.BannerType == "AD");
+                        _context.Banner.RemoveRange(Ads);
+                    }
+                    await _context.SaveChangesAsync();
+
                     foreach (var item in req.Banners)
                     {
                         ImageUrlResponse img  =new ImageUrlResponse();                
-                        img = await _services.UploadToS3(item.ImageRequest.ImageContent, item.ImageRequest.Extension,MayMayShopConst.AWS_PRODUCT_PATH);
+                        img = await _services.UploadToS3NoFixedSize(item.ImageRequest.ImageContent, item.ImageRequest.Extension,MayMayShopConst.AWS_PRODUCT_PATH);
                         CreateBannerRequest banner = new CreateBannerRequest{
                             Name = item.Name,
                             ImageRequest = item.ImageRequest,
@@ -487,6 +497,8 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
+        
+
         
         [HttpPost("UpdateBanner")]
         [Authorize]
@@ -624,6 +636,27 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
+
+        #region Activity Log API
+        [HttpGet("GetLastActiveByUserId")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetLastActiveByUserId(int userId)
+        {
+            try
+            {
+                var response = await _repo.GetLastActiveByUserId(userId);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        #endregion
 
         [HttpGet("GetBrand")]
         // [Authorize]

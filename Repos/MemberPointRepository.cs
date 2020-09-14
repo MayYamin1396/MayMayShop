@@ -856,5 +856,41 @@ namespace MayMayShop.API.Repos
                             
             return productCategory;
         }
+
+        public async Task<GetOrderDetailForMemberPoint_MS_Response> GetOrderDetailForMemberPoint_MS(string voucherNo)
+        {     
+            var data=await _context.Order
+            .Where(x=>x.VoucherNo==voucherNo)
+            .Select(x=>new GetOrderDetailForMemberPoint_MS_Response{
+                OrderId=x.Id,
+                VoucherNo=x.VoucherNo,
+                OrderDate=x.OrderDate,
+                OrderStatus=_context.OrderStatus.Where(o=>o.Id==x.OrderStatusId).Select(o=>o.Name).FirstOrDefault(),
+                TotalAmount=x.TotalAmt,
+                DeliveryFee=x.DeliveryFee,
+                NetAmount=x.NetAmt
+            }).FirstOrDefaultAsync();
+
+            var orderDetail=await _context.OrderDetail
+            .Where(x=>x.OrderId==data.OrderId)
+            .ToListAsync();
+
+            data.ProductUrl=await _context.ProductImage
+            .Where(x=>x.ProductId==orderDetail.FirstOrDefault().ProductId
+            && x.isMain==true)
+            .Select(x=>x.Url)
+            .FirstOrDefaultAsync();
+
+            data.TotalItem=orderDetail.Count();
+
+            var paymentStatusId=await _context.OrderPaymentInfo
+            .Where(x=>x.OrderId==data.OrderId)
+            .OrderByDescending(x=>x.TransactionDate)
+            .Select(x=>x.Id)
+            .FirstOrDefaultAsync();
+
+            data.PaymentStatus=await _context.PaymentStatus.Where(x=>x.Id==paymentStatusId).Select(x=>x.Name).FirstOrDefaultAsync();
+            return data;
+        }
     }
 }

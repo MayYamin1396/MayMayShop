@@ -29,9 +29,8 @@ namespace MayMayShop.API.Models
 
         public int? UpdatedBy { get; set; }
 
-        //new field
+       //new field
         public int? BrandId {get;set;}
-
         public virtual ProductCategory ProductCategory { get; set; }
         public virtual ProductPromotion ProductPromotion { get; set; }
         public virtual ICollection<ProductImage> ProductImage { get; set; }

@@ -13,15 +13,21 @@ using MayMayShop.API.Dtos.MiscellaneousDto;
 using MayMayShop.API.Dtos;
 using System;
 using Microsoft.AspNetCore.Http;
+using MayMayShop.API.Interfaces.Services;
+using log4net;
+using MayMayShop.API.Const;
 
 namespace MayMayShop.API.Repos
 {
     public class MiscellaneousRepository : IMiscellaneousRepository
     {
         private readonly MayMayShopContext _context;
-        public MiscellaneousRepository(MayMayShopContext context)
+        private readonly IMayMayShopServices _services;
+        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        public MiscellaneousRepository(MayMayShopContext context,IMayMayShopServices service)
         {
             _context = context;
+            _services=service;
         }
         public Image FixedSize(Image imgPhoto, int width, int height)
         {
@@ -210,8 +216,9 @@ namespace MayMayShop.API.Repos
                     await transaction.CommitAsync();
                     return new ResponseStatus(){StatusCode=StatusCodes.Status200OK,Message="Successfully Added."};
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    log.Error(string.Format("error=>{0}, inner exception=>{1}",e.Message,e.InnerException.Message));
                     transaction.Rollback();
                     return new ResponseStatus(){StatusCode = StatusCodes.Status500InternalServerError, Message="Failed"};
                 }
@@ -266,6 +273,18 @@ namespace MayMayShop.API.Repos
         }
         public async Task<GetMainCategoryByIdResponse> GetMainCategoryById(int productCategoryId)
         {
+            //product id that qty is 0 or less than 0.
+            var productSkuIDs=await (from sku in _context.ProductSku
+                                group sku by sku.ProductId into newSku
+                                select new
+                                {
+                                ProductId = newSku.Key,
+                                TotalQty = newSku.Sum(x => x.Qty), 
+                                })
+                                .Where(x=>x.TotalQty<=0)
+                                .Select(x=>x.ProductId)
+                                .ToArrayAsync();
+
             return await _context.ProductCategory
                     .Where(x=>x.Id==productCategoryId)
                     .Select(x=>new GetMainCategoryByIdResponse{
@@ -283,7 +302,8 @@ namespace MayMayShop.API.Repos
                                         Url=a.Url,
                                         ProductCount=_context.Product
                                                     .Where(p=>p.ProductCategoryId==a.Id
-                                                    && a.IsDeleted!=true)
+                                                    && p.IsActive==true
+                                                    &&!productSkuIDs.Contains(p.Id) )
                                                     .Count(),
                                         Variant=_context.Variant
                                                 .Where(v=>v.ProductCategoryId==a.Id && v.IsDeleted!=true)
@@ -313,14 +333,18 @@ namespace MayMayShop.API.Repos
 
             foreach(var item in request.VariantList)
             {
+                if(!_context.Variant.Any(x=>x.ProductCategoryId==category.Id && x.Name==item.Name && x.IsDeleted == false))
+                {
                 Variant variant=new Variant(){
-                ProductCategoryId=category.Id,
-                Name=item.Name,
-                Description=item.Name,
-                CreatedBy=currentUserLogin,
-                CreatedDate=DateTime.Now
-                };
-            _context.Variant.Add(variant);
+                    ProductCategoryId=category.Id,
+                    Name=item.Name,
+                    Description=item.Name,
+                    CreatedBy=currentUserLogin,
+                    CreatedDate=DateTime.Now
+                    };  
+                    
+                _context.Variant.Add(variant);
+                }
             }           
             await _context.SaveChangesAsync();
 
@@ -396,11 +420,11 @@ namespace MayMayShop.API.Repos
                     }).SingleOrDefaultAsync();
         }
 
-        public async Task<ResponseStatus> CreateVariant(CreateVariantRequest request, int currentUserLogin)
+        public async Task<CreateVariantResponse> CreateVariant(CreateVariantRequest request, int currentUserLogin)
         {
             if(_context.Variant.Any(x=>x.ProductCategoryId==request.SubCategoryId && x.Name==request.Name && x.IsDeleted == false))
             {
-                return new ResponseStatus(){StatusCode=StatusCodes.Status400BadRequest,Message="Variant is duplicated!"};
+                return new CreateVariantResponse(){StatusCode=StatusCodes.Status400BadRequest,Message="Variant is duplicated!"};
             }
             Variant variant=new Variant(){
                 Name=request.Name,
@@ -411,7 +435,11 @@ namespace MayMayShop.API.Repos
             };
             _context.Variant.Add(variant);
             await _context.SaveChangesAsync();
-            return new ResponseStatus(){StatusCode=StatusCodes.Status200OK,Message="Successfully Added."};
+            var resp = new CreateVariantResponse();
+            resp.variantId = variant.Id;
+            resp.StatusCode = StatusCodes.Status200OK;
+            resp.Message = "Successfully Added.";
+            return resp;
         }
 
         public async Task<ResponseStatus> UpdateVariant(UpdateVariantRequest request, int currentUserLogin)
@@ -528,6 +556,23 @@ namespace MayMayShop.API.Repos
                         Name=x.Name,
                     }).ToListAsync();
         }
+    
+        #region Activity Log API
+        public async Task<string> GetLastActiveByUserId(int userId){
+            var data= await _context.ActivityLog
+                                .Where(x=>x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_ACTIVE
+                                && x.UserId==userId)
+                                .OrderByDescending(x=>x.CreatedDate)
+                                .FirstOrDefaultAsync();
+            if(data!=null)
+            {
+                return data.CreatedDate.ToString("yyyy-MM-dd H:mm:ss zzz");
+            }
+            else{
+                return string.Empty;
+            }
+        } 
+        #endregion
 
         public async Task<List<GetBrandResponse>> GetBrand()
         {
