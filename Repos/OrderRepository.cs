@@ -2995,6 +2995,9 @@ namespace MayMayShop.API.Repos
             return null;
         }
 
+        public async Task<> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest request){
+            
+        }
         public async Task<List<string>> GetVoucherNoSuggestion(GetVoucherNoSuggestionRequest request)
         {
             return await _context.Order.Where(x=>x.VoucherNo.Contains(request.SearchText) && x.OrderUserId==request.UserId).OrderBy(x=>x.VoucherNo).Select(x=>x.VoucherNo)

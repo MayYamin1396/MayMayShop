@@ -21,6 +21,8 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<PostOrderByKBZPayResponse> PostOrderByKBZPay(PostOrderRequest req,int userId, string token);
         Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req,int userId, string token);
         Task<PostOrderResponse> CheckKPayStatus(string transactionId,int userId,string token,int platform);
+
+        Task<> CheckWaveTransactionStatus (CheckWaveTransactionStatusRequest request);
         Task <ResponseStatus> UpdateProductCart(UpdateProductCartRequest request, int userId);
         Task<List<GetOrderHistoryResponse>> GetOrderHistory(GetOrderHistoryRequest request);
          Task<List<GetOrderHistoryResponse>> GetOrderHistorySeller(GetOrderHistorySellerRequest request);
