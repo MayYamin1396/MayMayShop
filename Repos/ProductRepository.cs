@@ -393,6 +393,12 @@ namespace MayMayShop.API.Repos
                                 .Where(x => x.Id == req.ProductId)
                                 .FirstOrDefaultAsync();
 
+                    //just in case
+                    if(req.BrandId==0)
+                    {
+                        req.BrandId=2;
+                    }
+
                     var productToAdd = new Product()
                     {
                         Name = req.Name,
@@ -401,7 +407,7 @@ namespace MayMayShop.API.Repos
                         CreatedBy = currentLoginID,
                         ProductCategoryId = trnProduct.ProductCategoryId,
                         Description = req.Description,
-                        BrandId = req.BrandId
+                        BrandId = req.BrandId,
                     };
                     await _context.Product.AddAsync(productToAdd);
                     await _context.SaveChangesAsync();
@@ -631,7 +637,7 @@ namespace MayMayShop.API.Repos
                 }
                 catch (Exception e)
                 {
-                    log.Error(e.Message);
+                    log.Error(string.Format("error => {0}, inner exception => {1} ",e.Message,e.InnerException.Message));
                     transaction.Rollback();
                     return new ResponseStatus{
                         StatusCode=StatusCodes.Status500InternalServerError,
