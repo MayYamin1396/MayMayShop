@@ -12,5 +12,7 @@ namespace MayMayShop.API.Interfaces.Services
         Task<KBZPQueryOrderResponse> KBZQueryOrder(string TransactionId);
 
         Task<PostOrderByWavePayResponse> WavePayPrecreate(string TransactionId,double NetAmount, List<ProductItem> Items, string payment_description);
+
+        string GenerateSHA256Hash_WaveTransaction (CheckWaveTransactionStatusRequest request);
     }
 }

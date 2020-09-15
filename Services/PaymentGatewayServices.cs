@@ -236,16 +236,6 @@ namespace MayMayShop.API.Services
             log.Info("Response => " + JsonConvert.SerializeObject(result));    
             return result;
         }
-
-        public async Task<> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest req)
-        {
-            req.merchantId = MayMayShopConst.WAVE_MERCHANT_ID;
-            req.hashValue  = GenerateSHA256Hash_WaveTransaction(req);
-
-            string json = JsonConvert.SerializeObject(req,Formatting.Indented);
-
-            log.Info("Request => " + json);
-        }
         private string GenerateSHA256Hash_WaveOrder(WavePrecreateRequest req)
         {
 
@@ -264,9 +254,8 @@ namespace MayMayShop.API.Services
             return hash;
         }
 
-        private string GenerateSHA256Hash_WaveTransaction(CheckWaveTransactionStatusRequest req)
+        public string GenerateSHA256Hash_WaveTransaction(CheckWaveTransactionStatusRequest req)
         {
-
             string[] strArry = {       
                                     req.status,
                                     req.timeToLiveSeconds,

@@ -22,7 +22,7 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req,int userId, string token);
         Task<PostOrderResponse> CheckKPayStatus(string transactionId,int userId,string token,int platform);
 
-        Task<> CheckWaveTransactionStatus (CheckWaveTransactionStatusRequest request);
+        Task<PostOrderResponse> CheckWaveTransactionStatus (CheckWaveTransactionStatusRequest request,int platform);
         Task <ResponseStatus> UpdateProductCart(UpdateProductCartRequest request, int userId);
         Task<List<GetOrderHistoryResponse>> GetOrderHistory(GetOrderHistoryRequest request);
          Task<List<GetOrderHistoryResponse>> GetOrderHistorySeller(GetOrderHistorySellerRequest request);
@@ -44,6 +44,8 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<List<string>> GetVoucherNoSuggestionSeller(GetVoucherNoSuggestionSellerRequest request);    
         Task<GetVoucherResponse> GetVoucher(int OrderId,string token);  
         Task<GetPOSVoucherResponse> GetPOSVoucher(int OrderId,int userId,string token);
-        Task<bool> CallBackKPayNotify(string transactionId);         
+        Task<bool> CallBackKPayNotify(string transactionId);      
+
+        Task<GetOrderDetailResponse>GetOrderDetailByTransactionId(string transactionId,string token);   
     }
 }

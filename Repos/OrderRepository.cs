@@ -2995,8 +2995,84 @@ namespace MayMayShop.API.Repos
             return null;
         }
 
-        public async Task<> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest request){
-            
+        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
+        {
+            var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
+            OrderTransaction transaction = new OrderTransaction(){
+                Id= transactionID,
+                TransactionData = JsonConvert.SerializeObject(req),
+                CreatedBy = userId,
+                CreatedDate = DateTime.Now
+            };
+            _context.OrderTransaction.Add(transaction);
+            await _context.SaveChangesAsync();
+            List<ProductItem> items = new List<ProductItem>();
+            foreach (var item in req.ProductInfo)
+            {
+                string productName = "";
+                int amt = 0;
+                var product = new ProductItem();
+                if (item.Qty > 1)
+                {
+                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
+                    productName = productName+ "  x  "+item.Qty;
+                    amt = Convert.ToInt32(item.Price * item.Qty);
+                    product.name = productName;
+                    product.amount = amt;
+                }else{
+                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
+                    amt = Convert.ToInt32(item.Price);
+                    product.name = productName;
+                    product.amount = amt;
+                }
+                items.Add(product);
+            }
+            if (req.DeliveryFee > 0)
+            {
+                items.Add(new ProductItem{name = "Tax", amount = Convert.ToInt32(req.DeliveryFee)});
+            }
+            var payment_description = req.PaymentInfo.Remark;
+
+            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
+            return response;
+        }
+        public async Task<PostOrderResponse> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest request,int platform){
+            var resp = new PostOrderResponse();
+            if (request.status == "PAYMENT_CONFIRMED")
+            {
+                var transaction = await _context.OrderTransaction.Where(x => x.Id == request.merchantReferenceId).SingleOrDefaultAsync();
+                var has = _paymentservices.GenerateSHA256Hash_WaveTransaction(request);
+                if (request.hashValue == has)
+                {
+                    PostOrderRequest req= Newtonsoft.Json.JsonConvert.DeserializeObject<PostOrderRequest>(transaction.TransactionData);
+                        var imgUrlResponseList = new List<ImageUrlResponse>();
+                        req.PaymentInfo.ApprovalImage =new PostOrderPaymentImgage(){ApprovalImage="",ApprovalImageExtension="png"}; //new List<PostOrderPaymentImgage>();
+
+                        resp =await PostOrder(req,transaction.CreatedBy,null,platform) ;
+                        if(resp.StatusCode==StatusCodes.Status200OK)
+                        {
+                            transaction.OrderId=resp.OrderId;
+                            transaction.mm_order_id=request.paymentRequestId;
+                            await _context.SaveChangesAsync();
+                            
+                            // transaction.OrderId=resp.OrderId;
+                            // response.StatusCode=StatusCodes.Status200OK;
+                            // response.Message="အောင်မြင်သည်။";
+                            return resp;
+                        }
+                        else{
+                            transaction.mm_order_id=request.paymentRequestId;
+                            await _context.SaveChangesAsync();
+                            // response.StatusCode=StatusCodes.Status400BadRequest;
+                            // response.Message="မအောင်မြင်ပါ။";
+                            return resp;
+                        }
+                }
+            }else{
+                resp.StatusCode=StatusCodes.Status400BadRequest;
+                resp.Message="မအောင်မြင်ပါ။";
+            }
+            return resp;
         }
         public async Task<List<string>> GetVoucherNoSuggestion(GetVoucherNoSuggestionRequest request)
         {
@@ -3042,23 +3118,23 @@ namespace MayMayShop.API.Repos
             var orderDetail=await _context.OrderDetail
                             .Where(x=>x.OrderId==OrderId)
                             .Select(x=>new GetVoucherItem{
-                             Qty=x.Qty,
-                             Price=x.Price,
-                             ProductId=x.ProductId,
-                             SkuId=x.SkuId
+                                Qty=x.Qty,
+                                Price=x.Price,
+                                ProductId=x.ProductId,
+                                SkuId=x.SkuId
                             })
                             .ToListAsync();
             
             foreach (var item in orderDetail)
             {
                 var skuValue = await (from psku in _context.ProductSkuValue
-                                      from pvopt in _context.ProductVariantOption
-                                      where psku.ProductId == item.ProductId
-                                      && psku.SkuId == item.SkuId
-                                      && psku.ProductId == pvopt.ProductId
-                                      && psku.VariantId == pvopt.VariantId
-                                      && psku.ValueId == pvopt.ValueId
-                                      select pvopt.ValueName).ToListAsync();
+                                        from pvopt in _context.ProductVariantOption
+                                        where psku.ProductId == item.ProductId
+                                        && psku.SkuId == item.SkuId
+                                        && psku.ProductId == pvopt.ProductId
+                                        && psku.VariantId == pvopt.VariantId
+                                        && psku.ValueId == pvopt.ValueId
+                                        select pvopt.ValueName).ToListAsync();
 
                 item.Sku = string.Join(",", skuValue);
                 item.Name=await _context.Product
@@ -3198,46 +3274,15 @@ namespace MayMayShop.API.Repos
                 return false;
             }
         }
-        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
-        {
-            var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
-            OrderTransaction transaction = new OrderTransaction(){
-                Id= transactionID,
-                TransactionData = JsonConvert.SerializeObject(req),
-                CreatedBy = userId,
-                CreatedDate = DateTime.Now
-            };
-            _context.OrderTransaction.Add(transaction);
-            await _context.SaveChangesAsync();
-            List<ProductItem> items = new List<ProductItem>();
-            foreach (var item in req.ProductInfo)
-            {
-                string productName = "";
-                int amt = 0;
-                var product = new ProductItem();
-                if (item.Qty > 1)
-                {
-                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
-                    productName = productName+ "  x  "+item.Qty;
-                    amt = Convert.ToInt32(item.Price * item.Qty);
-                    product.name = productName;
-                    product.amount = amt;
-                }else{
-                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
-                    amt = Convert.ToInt32(item.Price);
-                    product.name = productName;
-                    product.amount = amt;
-                }
-                items.Add(product);
-            }
-            if (req.DeliveryFee > 0)
-            {
-                items.Add(new ProductItem{name = "Tax", amount = Convert.ToInt32(req.DeliveryFee)});
-            }
-            var payment_description = req.PaymentInfo.Remark;
 
-            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
-            return response;
+        public async Task<GetOrderDetailResponse> GetOrderDetailByTransactionId(string transactionId, string token)
+        {
+            var resp = new GetOrderDetailResponse();
+            var orderId = _context.OrderTransaction.Where(x => x.Id == transactionId).Select(x => x.OrderId).FirstOrDefault();
+            if (orderId != null)
+            {
+                resp = GetOrderDetail(orderId,token);
+            }
         }
     }
 }
