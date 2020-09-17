@@ -394,10 +394,10 @@ namespace MayMayShop.API.Repos
                                 .FirstOrDefaultAsync();
 
                     //just in case
-                    if(req.BrandId==0)
-                    {
-                        req.BrandId=2;
-                    }
+                    // if(req.BrandId==0)
+                    // {
+                    //     req.BrandId=2;
+                    // }
 
                     var productToAdd = new Product()
                     {
@@ -407,7 +407,7 @@ namespace MayMayShop.API.Repos
                         CreatedBy = currentLoginID,
                         ProductCategoryId = trnProduct.ProductCategoryId,
                         Description = req.Description,
-                        BrandId = req.BrandId,
+                        BrandId = req.BrandId == 0 ? null : req.BrandId
                     };
                     await _context.Product.AddAsync(productToAdd);
                     await _context.SaveChangesAsync();
@@ -428,7 +428,8 @@ namespace MayMayShop.API.Repos
                                 isMain = photoIsMain,
                                 CreatedDate = DateTime.Now,
                                 CreatedBy = currentLoginID,
-                                ProductId = productToAdd.Id
+                                ProductId = productToAdd.Id,
+                                SeqNo=img.SeqNo
                             };
                             await _context.ProductImage.AddAsync(productImage);
                             photoIsMain=false;                    
@@ -583,7 +584,7 @@ namespace MayMayShop.API.Repos
 
                     foreach(var sku in productSkuToAdd)
                     {
-                        sku.Price=req.Sku.Where(sku=>sku.SkuId==sku.SkuId).Select(sku=>sku.Price).FirstOrDefault();
+                        sku.Price=req.Sku.Where(s=>s.SkuId==sku.SkuId).Select(s=>s.Price).FirstOrDefault();
                     }
 
                     var productSkuValueToAdd = await _context.TrnProductSkuValue
@@ -660,7 +661,7 @@ namespace MayMayShop.API.Repos
                     product.Description=req.Description;
                     product.UpdatedDate=DateTime.Now;
                     product.UpdatedBy=currentLoginID;
-                    product.BrandId = req.BrandId;
+                    product.BrandId = req.BrandId == 0 ? null : req.BrandId;
                     
                     #endregion
 
@@ -669,7 +670,7 @@ namespace MayMayShop.API.Repos
                     if (imageUrlList.Count > 0)
                     {     
                         var isMain=true;
-                        foreach (var img in imageUrlList)
+                        foreach (var img in imageUrlList.OrderBy(x=>x.SeqNo).ToList())
                         {                   
                             switch(img.Action)
                             {
@@ -924,7 +925,7 @@ namespace MayMayShop.API.Repos
                             var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                             ProductSkuValue producSkuValue2 = new ProductSkuValue();
                             producSkuValue2.ProductId = request.ProductId;
-                            producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue2.ValueId = productVariantOptionRes2.ValueId;
                             producSkuValue2.VariantId = request.VariantList[1].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -932,7 +933,7 @@ namespace MayMayShop.API.Repos
 
                             ProductSkuValue producSkuValue1 = new ProductSkuValue();
                             producSkuValue1.ProductId = request.ProductId;
-                            producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue1.ValueId = productVariantOptionRes1.ValueId;
                             producSkuValue1.VariantId = request.VariantList[0].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue1);
@@ -993,14 +994,14 @@ namespace MayMayShop.API.Repos
                         ProductVariantOption productVariantOption = new ProductVariantOption();
                         productVariantOption.ProductId = request.ProductId;
                         productVariantOption.VariantId = request.VariantList[1].VariantId;
-                        productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                        productVariantOption.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                         productVariantOption.ValueName = request.VariantList[1].VariantName;
                         await _context.ProductVariantOption.AddAsync(productVariantOption);
 
                         var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                         ProductSkuValue producSkuValue2 = new ProductSkuValue();
                         producSkuValue2.ProductId = request.ProductId;
-                        producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                        producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                         producSkuValue2.ValueId = productVariantOption.ValueId;
                         producSkuValue2.VariantId = request.VariantList[1].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1009,7 +1010,7 @@ namespace MayMayShop.API.Repos
 
                         ProductSkuValue producSkuValue1 = new ProductSkuValue();
                         producSkuValue1.ProductId = request.ProductId;
-                        producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
+                        producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                         producSkuValue1.ValueId = productVariantOptionRes1.ValueId;
                         producSkuValue1.VariantId = request.VariantList[0].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue1);
@@ -1072,15 +1073,15 @@ namespace MayMayShop.API.Repos
                     ProductVariantOption productVariantOption = new ProductVariantOption();
                     productVariantOption.ProductId = request.ProductId;
                     productVariantOption.VariantId = request.VariantList[0].VariantId;
-                    productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                    productVariantOption.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                     productVariantOption.ValueName = request.VariantList[0].VariantName;
                     await _context.ProductVariantOption.AddAsync(productVariantOption);
 
                     var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                     ProductSkuValue producSkuValue1 = new ProductSkuValue();
                     producSkuValue1.ProductId = request.ProductId;
-                    producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
-                    producSkuValue1.ValueId = productVariantOptionValueId.ValueId + 1;
+                    producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
+                    producSkuValue1.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                     producSkuValue1.VariantId = request.VariantList[0].VariantId;
                     await _context.ProductSkuValue.AddAsync(producSkuValue1);
                     productSkuValues.Add(producSkuValue1);
@@ -1090,7 +1091,7 @@ namespace MayMayShop.API.Repos
                     {
                         ProductSkuValue producSkuValue2 = new ProductSkuValue();
                         producSkuValue2.ProductId = request.ProductId;
-                        producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                        producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                         producSkuValue2.ValueId = productVariantOptionRes2.ValueId;
                         producSkuValue2.VariantId = request.VariantList[1].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1150,13 +1151,13 @@ namespace MayMayShop.API.Repos
                         ProductVariantOption productVariantOption2 = new ProductVariantOption();
                         productVariantOption2.ProductId = request.ProductId;
                         productVariantOption2.VariantId = request.VariantList[1].VariantId;
-                        productVariantOption2.ValueId = productVariantOptionValueId2.ValueId + 1;
+                        productVariantOption2.ValueId =productVariantOptionValueId2==null?1: productVariantOptionValueId2.ValueId + 1;
                         productVariantOption2.ValueName = request.VariantList[1].VariantName;
                         await _context.ProductVariantOption.AddAsync(productVariantOption2);
 
                         ProductSkuValue producSkuValue2 = new ProductSkuValue();
                         producSkuValue2.ProductId = request.ProductId;
-                        producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                        producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                         producSkuValue2.ValueId = productVariantOption2.ValueId;
                         producSkuValue2.VariantId = request.VariantList[1].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1265,7 +1266,7 @@ namespace MayMayShop.API.Repos
                                     var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                                     ProductSkuValue producSkuValue2 = new ProductSkuValue();
                                     producSkuValue2.ProductId = request.ProductId;
-                                    producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                                    producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                                     producSkuValue2.ValueId = productVariantOptionRes2.ValueId;
                                     producSkuValue2.VariantId = request.VariantList[1].VariantId;
                                     await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1273,7 +1274,7 @@ namespace MayMayShop.API.Repos
 
                                     ProductSkuValue producSkuValue1 = new ProductSkuValue();
                                     producSkuValue1.ProductId = request.ProductId;
-                                    producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
+                                    producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                                     producSkuValue1.ValueId = productVariantOptionRes1.ValueId;
                                     producSkuValue1.VariantId = request.VariantList[0].VariantId;
                                     await _context.ProductSkuValue.AddAsync(producSkuValue1);
@@ -1281,7 +1282,7 @@ namespace MayMayShop.API.Repos
 
                                     ProductSkuValue producSkuValue3 = new ProductSkuValue();
                                     producSkuValue3.ProductId = request.ProductId;
-                                    producSkuValue3.SkuId = productSkuValueId.SkuId + 1;
+                                    producSkuValue3.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                                     producSkuValue3.ValueId = productVariantOptionRes3.ValueId;
                                     producSkuValue3.VariantId = request.VariantList[2].VariantId;
                                     await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1342,7 +1343,7 @@ namespace MayMayShop.API.Repos
                                 var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                                 ProductSkuValue producSkuValue2 = new ProductSkuValue();
                                 producSkuValue2.ProductId = request.ProductId;
-                                producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                                producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                                 producSkuValue2.ValueId = productVariantOptionRes2.ValueId;
                                 producSkuValue2.VariantId = request.VariantList[1].VariantId;
                                 await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1350,7 +1351,7 @@ namespace MayMayShop.API.Repos
 
                                 ProductSkuValue producSkuValue1 = new ProductSkuValue();
                                 producSkuValue1.ProductId = request.ProductId;
-                                producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
+                                producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                                 producSkuValue1.ValueId = productVariantOptionRes1.ValueId;
                                 producSkuValue1.VariantId = request.VariantList[0].VariantId;
                                 await _context.ProductSkuValue.AddAsync(producSkuValue1);
@@ -1358,7 +1359,7 @@ namespace MayMayShop.API.Repos
 
                                 ProductSkuValue producSkuValue3 = new ProductSkuValue();
                                 producSkuValue3.ProductId = request.ProductId;
-                                producSkuValue3.SkuId = productSkuValueId.SkuId + 1;
+                                producSkuValue3.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                                 producSkuValue3.ValueId = productVariantOptionRes3.ValueId;
                                 producSkuValue3.VariantId = request.VariantList[2].VariantId;
                                 await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1419,14 +1420,14 @@ namespace MayMayShop.API.Repos
                             ProductVariantOption productVariantOption = new ProductVariantOption();
                             productVariantOption.ProductId = request.ProductId;
                             productVariantOption.VariantId = request.VariantList[2].VariantId;
-                            productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                            productVariantOption.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                             productVariantOption.ValueName = request.VariantList[2].VariantName;
                             await _context.ProductVariantOption.AddAsync(productVariantOption);
 
                             var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                             ProductSkuValue producSkuValue2 = new ProductSkuValue();
                             producSkuValue2.ProductId = request.ProductId;
-                            producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue2.ValueId = productVariantOptionRes2.ValueId;
                             producSkuValue2.VariantId = request.VariantList[1].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1434,7 +1435,7 @@ namespace MayMayShop.API.Repos
 
                             ProductSkuValue producSkuValue1 = new ProductSkuValue();
                             producSkuValue1.ProductId = request.ProductId;
-                            producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue1.ValueId = productVariantOptionRes1.ValueId;
                             producSkuValue1.VariantId = request.VariantList[0].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue1);
@@ -1442,7 +1443,7 @@ namespace MayMayShop.API.Repos
 
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOption.ValueId;
                             producSkuValue3.VariantId = request.VariantList[2].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1504,14 +1505,14 @@ namespace MayMayShop.API.Repos
                         ProductVariantOption productVariantOption = new ProductVariantOption();
                         productVariantOption.ProductId = request.ProductId;
                         productVariantOption.VariantId = request.VariantList[1].VariantId;
-                        productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                        productVariantOption.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                         productVariantOption.ValueName = request.VariantList[1].VariantName;
                         await _context.ProductVariantOption.AddAsync(productVariantOption);
 
                         var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                         ProductSkuValue producSkuValue2 = new ProductSkuValue();
                         producSkuValue2.ProductId = request.ProductId;
-                        producSkuValue2.SkuId = productSkuValueId.SkuId + 1;
+                        producSkuValue2.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                         producSkuValue2.ValueId = productVariantOption.ValueId;
                         producSkuValue2.VariantId = request.VariantList[1].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1520,7 +1521,7 @@ namespace MayMayShop.API.Repos
 
                         ProductSkuValue producSkuValue1 = new ProductSkuValue();
                         producSkuValue1.ProductId = request.ProductId;
-                        producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
+                        producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                         producSkuValue1.ValueId = productVariantOptionRes1.ValueId;
                         producSkuValue1.VariantId = request.VariantList[0].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue1);
@@ -1533,7 +1534,7 @@ namespace MayMayShop.API.Repos
                         {
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOptionRes3.ValueId;
                             producSkuValue3.VariantId = request.VariantList[2].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1593,13 +1594,13 @@ namespace MayMayShop.API.Repos
                             ProductVariantOption productVariantOption3 = new ProductVariantOption();
                             productVariantOption3.ProductId = request.ProductId;
                             productVariantOption3.VariantId = request.VariantList[2].VariantId;
-                            productVariantOption3.ValueId = productVariantOptionValueId3.ValueId + 1;
+                            productVariantOption3.ValueId = productVariantOptionValueId3==null?1:productVariantOptionValueId3.ValueId + 1;
                             productVariantOption3.ValueName = request.VariantList[2].VariantName;
                             await _context.ProductVariantOption.AddAsync(productVariantOption3);
 
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOption3.ValueId;
                             producSkuValue3.VariantId = request.VariantList[1].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1663,15 +1664,15 @@ namespace MayMayShop.API.Repos
                     ProductVariantOption productVariantOption1 = new ProductVariantOption();
                     productVariantOption1.ProductId = request.ProductId;
                     productVariantOption1.VariantId = request.VariantList[0].VariantId;
-                    productVariantOption1.ValueId = productVariantOptionValueId1.ValueId + 1;
+                    productVariantOption1.ValueId =productVariantOptionValueId1==null?1: productVariantOptionValueId1.ValueId + 1;
                     productVariantOption1.ValueName = request.VariantList[0].VariantName;
                     await _context.ProductVariantOption.AddAsync(productVariantOption1);
 
                     var productSkuValueId1 = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                     ProductSkuValue producSkuValue11 = new ProductSkuValue();
                     producSkuValue11.ProductId = request.ProductId;
-                    producSkuValue11.SkuId = productSkuValueId1.SkuId + 1;
-                    producSkuValue11.ValueId = productVariantOptionValueId1.ValueId + 1;
+                    producSkuValue11.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
+                    producSkuValue11.ValueId =productVariantOptionValueId1==null?1: productVariantOptionValueId1.ValueId + 1;
                     producSkuValue11.VariantId = request.VariantList[0].VariantId;
                     await _context.ProductSkuValue.AddAsync(producSkuValue11);
                     productSkuValues.Add(producSkuValue11);
@@ -1687,7 +1688,7 @@ namespace MayMayShop.API.Repos
                         //var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                         ProductSkuValue producSkuValue2 = new ProductSkuValue();
                         producSkuValue2.ProductId = request.ProductId;
-                        producSkuValue2.SkuId = productSkuValueId1.SkuId + 1;
+                        producSkuValue2.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
                         producSkuValue2.ValueId = productVariantOptionRes2.ValueId;
                         producSkuValue2.VariantId = request.VariantList[1].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1699,7 +1700,7 @@ namespace MayMayShop.API.Repos
                         {
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId1.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOptionRes3.ValueId;
                             producSkuValue3.VariantId = request.VariantList[2].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1760,13 +1761,13 @@ namespace MayMayShop.API.Repos
                             ProductVariantOption productVariantOption = new ProductVariantOption();
                             productVariantOption.ProductId = request.ProductId;
                             productVariantOption.VariantId = request.VariantList[2].VariantId;
-                            productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                            productVariantOption.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                             productVariantOption.ValueName = request.VariantList[2].VariantName;
                             await _context.ProductVariantOption.AddAsync(productVariantOption);
 
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId1.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOption.ValueId;
                             producSkuValue3.VariantId = request.VariantList[2].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1828,14 +1829,14 @@ namespace MayMayShop.API.Repos
                         ProductVariantOption productVariantOption = new ProductVariantOption();
                         productVariantOption.ProductId = request.ProductId;
                         productVariantOption.VariantId = request.VariantList[1].VariantId;
-                        productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                        productVariantOption.ValueId =productVariantOptionValueId==null?1: productVariantOptionValueId.ValueId + 1;
                         productVariantOption.ValueName = request.VariantList[1].VariantName;
                         await _context.ProductVariantOption.AddAsync(productVariantOption);
 
                         //var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                         ProductSkuValue producSkuValue2 = new ProductSkuValue();
                         producSkuValue2.ProductId = request.ProductId;
-                        producSkuValue2.SkuId = productSkuValueId1.SkuId + 1;
+                        producSkuValue2.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
                         producSkuValue2.ValueId = productVariantOption.ValueId;
                         producSkuValue2.VariantId = request.VariantList[1].VariantId;
                         await _context.ProductSkuValue.AddAsync(producSkuValue2);
@@ -1849,7 +1850,7 @@ namespace MayMayShop.API.Repos
                         {
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId1.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOptionRes3.ValueId;
                             producSkuValue3.VariantId = request.VariantList[2].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1909,13 +1910,13 @@ namespace MayMayShop.API.Repos
                             ProductVariantOption productVariantOption3 = new ProductVariantOption();
                             productVariantOption3.ProductId = request.ProductId;
                             productVariantOption3.VariantId = request.VariantList[2].VariantId;
-                            productVariantOption3.ValueId = productVariantOptionValueId3.ValueId + 1;
+                            productVariantOption3.ValueId =productVariantOptionValueId3==null?1: productVariantOptionValueId3.ValueId + 1;
                             productVariantOption3.ValueName = request.VariantList[2].VariantName;
                             await _context.ProductVariantOption.AddAsync(productVariantOption3);
 
                             ProductSkuValue producSkuValue3 = new ProductSkuValue();
                             producSkuValue3.ProductId = request.ProductId;
-                            producSkuValue3.SkuId = productSkuValueId1.SkuId + 1;
+                            producSkuValue3.SkuId =productSkuValueId1==null?1: productSkuValueId1.SkuId + 1;
                             producSkuValue3.ValueId = productVariantOption3.ValueId;
                             producSkuValue3.VariantId = request.VariantList[1].VariantId;
                             await _context.ProductSkuValue.AddAsync(producSkuValue3);
@@ -1992,7 +1993,7 @@ namespace MayMayShop.API.Repos
                     ProductVariantOption productVariantOption = new ProductVariantOption();
                     productVariantOption.ProductId = request.ProductId;
                     productVariantOption.VariantId = request.VariantList[0].VariantId;
-                    productVariantOption.ValueId = productVariantOptionValueId.ValueId + 1;
+                    productVariantOption.ValueId =productVariantOptionValueId==null? 1: productVariantOptionValueId.ValueId + 1;
                     productVariantOption.ValueName = request.VariantList[0].VariantName;
                     await _context.ProductVariantOption.AddAsync(productVariantOption);
 
@@ -2003,8 +2004,8 @@ namespace MayMayShop.API.Repos
                      var productSkuValueId = await _context.ProductSkuValue.Where(x => x.ProductId == request.ProductId).OrderByDescending(x => x.SkuId).FirstOrDefaultAsync();
                     ProductSkuValue producSkuValue1 = new ProductSkuValue();
                     producSkuValue1.ProductId = request.ProductId;
-                    producSkuValue1.SkuId = productSkuValueId.SkuId + 1;
-                    producSkuValue1.ValueId = productVariantOptionValueId.ValueId + 1;
+                    producSkuValue1.SkuId =productSkuValueId==null?1: productSkuValueId.SkuId + 1;
+                    producSkuValue1.ValueId =productVariantOptionValueId==null? 1:  productVariantOptionValueId.ValueId + 1;
                     producSkuValue1.VariantId = request.VariantList[0].VariantId;
                     await _context.ProductSkuValue.AddAsync(producSkuValue1);
                     productSkuValues.Add(producSkuValue1);
@@ -2066,6 +2067,7 @@ namespace MayMayShop.API.Repos
             }
             return response;
         }
+
         public async Task<ResponseStatus> DeleteSku(DeleteSkuRequest request)
         {
             ResponseStatus response = new ResponseStatus();
@@ -3699,6 +3701,8 @@ namespace MayMayShop.API.Repos
                     .Where(x=>x.ProductId==productId)
                     .ToListAsync();
         }
+
+        //------------------------Brand-----------------------//
 
         public async Task<GetProductByBrandResponse> GetProductByBrand(GetProductByBrandRequest request)
         {

@@ -1367,7 +1367,9 @@ namespace MayMayShop.API.Repos
             {
                 GetOrderListByProductResponse orderListProduct = new GetOrderListByProductResponse();
                 orderListProduct.ProductName = orderDetails.ProductName;
-                orderListProduct.OrderCount = orderDetails.OrderCount;
+                orderListProduct.OrderCount = _context.OrderDetail	
+                                        .Where(x=>x.ProductId==orderDetails.ProductId)	
+                                        .Sum(x=>x.Qty);
                 orderListProduct.TotalQty = _context.ProductSku
                                         .Where(x=>x.ProductId==orderDetails.ProductId)
                                         .Sum(x=>x.Qty);
@@ -1443,21 +1445,34 @@ namespace MayMayShop.API.Repos
 
         public async Task<GetOrderListByProductIdResponse> GetOrderListByProductId(GetOrderListByProductIdRequest request)
         {
-            var productDetails = await _context.OrderDetail
-                                  .Join(_context.Product, ord => ord.ProductId, pro => pro.Id, (ord, pro) => new { ord, pro })
-                                  .Join(_context.ProductImage, pImg => pImg.pro.Id, bb => bb.ProductId, (pImg, bb) => new { pImg, bb })
-                                  .Where(x => x.pImg.ord.ProductId == request.ProductId && x.bb.isMain == true)
-                                  .Select(z => new
-                                  {
-                                      ProductId = z.pImg.pro.Id,
-                                      ProductName = z.pImg.pro.Name,
-                                      OrderId = z.pImg.ord.OrderId,
-                                      Price = z.pImg.ord.Price,
-                                      SkuId = z.pImg.ord.SkuId,
-                                      TotalQty = z.pImg.ord.Qty,
-                                      ProductUrl = z.pImg.pro.ProductImage.Where(x => x.isMain == true).FirstOrDefault()
+            // var productDetails = await _context.OrderDetail
+            //                       .Join(_context.Product, ord => ord.ProductId, pro => pro.Id, (ord, pro) => new { ord, pro })
+            //                       .Join(_context.ProductImage, pImg => pImg.pro.Id, bb => bb.ProductId, (pImg, bb) => new { pImg, bb })
+            //                       .Where(x => x.pImg.ord.ProductId == request.ProductId && x.bb.isMain == true)
+            //                       .Select(z => new
+            //                       {
+            //                           ProductId = z.pImg.pro.Id,
+            //                           ProductName = z.pImg.pro.Name,
+            //                           OrderId = z.pImg.ord.OrderId,
+            //                           Price = z.pImg.ord.Price,
+            //                           SkuId = z.pImg.ord.SkuId,
+            //                           TotalQty = z.pImg.ord.Qty,
+            //                           ProductUrl = z.pImg.pro.ProductImage.Where(x => x.isMain == true).FirstOrDefault()
 
-                                  }).ToListAsync();
+            //                       }).ToListAsync();
+            var productDetails = await (from ordDtl in _context.OrderDetail
+                                        join prd in _context.Product on ordDtl.ProductId equals prd.Id
+                                        where ordDtl.ProductId == request.ProductId
+                                        select new {
+                                            ProductId = prd.Id,
+                                            ProductName = prd.Name,
+                                            OrderId = ordDtl.OrderId,
+                                            Price = ordDtl.Price,
+                                            SkuId = ordDtl.SkuId,
+                                            TotalQty = ordDtl.Qty,
+                                            ProductUrl = _context.ProductImage.Where(p => p.ProductId == prd.Id && p.isMain == true).FirstOrDefault()
+                                        }
+                                        ).ToListAsync();
 
             if (productDetails.Count > 0)
             {
@@ -1469,6 +1484,9 @@ namespace MayMayShop.API.Repos
                 orderListByProduct.Price = productResponse.Price;
                 orderListByProduct.ProductUrl = productResponse.ProductUrl.Url;
                 orderListByProduct.OrderCount = productDetails.Count;
+                orderListByProduct.TotalQty = _context.ProductSku
+                                        .Where(x=>x.ProductId==request.ProductId)
+                                        .Sum(x=>x.Qty);
 
                 var sku = await (from psku in _context.ProductSkuValue
                                  from pvopt in _context.ProductVariantOption
@@ -1482,7 +1500,7 @@ namespace MayMayShop.API.Repos
 
                 foreach (var orderDetail in productDetails)
                 {
-                    orderListByProduct.TotalQty += orderDetail.TotalQty;
+                    // orderListByProduct.TotalQty += orderDetail.TotalQty;
                     UserResponse userOrder = new UserResponse();
                     var orderRes = await _context.Order
                                     .Join(_context.OrderDeliveryInfo, ord => ord.Id, ordDeli => ordDeli.OrderId, (ord, ordDeli) => new { ord, ordDeli })
@@ -3118,29 +3136,53 @@ namespace MayMayShop.API.Repos
             var orderDetail=await _context.OrderDetail
                             .Where(x=>x.OrderId==OrderId)
                             .Select(x=>new GetVoucherItem{
-                                Qty=x.Qty,
-                                Price=x.Price,
-                                ProductId=x.ProductId,
-                                SkuId=x.SkuId
+                             Qty=x.Qty,
+                             Price=x.Price,
+                             ProductId=x.ProductId,
+                             SkuId=x.SkuId
                             })
                             .ToListAsync();
             
             foreach (var item in orderDetail)
             {
                 var skuValue = await (from psku in _context.ProductSkuValue
-                                        from pvopt in _context.ProductVariantOption
-                                        where psku.ProductId == item.ProductId
-                                        && psku.SkuId == item.SkuId
-                                        && psku.ProductId == pvopt.ProductId
-                                        && psku.VariantId == pvopt.VariantId
-                                        && psku.ValueId == pvopt.ValueId
-                                        select pvopt.ValueName).ToListAsync();
+                                      from pvopt in _context.ProductVariantOption
+                                      where psku.ProductId == item.ProductId
+                                      && psku.SkuId == item.SkuId
+                                      && psku.ProductId == pvopt.ProductId
+                                      && psku.VariantId == pvopt.VariantId
+                                      && psku.ValueId == pvopt.ValueId
+                                      select pvopt.ValueName).ToListAsync();
 
                 item.Sku = string.Join(",", skuValue);
                 item.Name=await _context.Product
                         .Where(x=>x.Id==item.ProductId)
                         .Select(x=>x.Name)
-                        .SingleOrDefaultAsync();                      
+                        .SingleOrDefaultAsync();
+
+                item.OriginalPrice=_context.ProductSku.Where(x=>x.ProductId==item.ProductId
+                                    && x.SkuId==item.SkuId)
+                                    .Select(x=>x.Price)
+                                    .SingleOrDefault();   
+                                    
+                #region GetPromotion
+
+                var productPromote = await _context.ProductPromotion
+                                                .Where(x => x.ProductId == item.ProductId)
+                                                .FirstOrDefaultAsync();
+
+                int promotePercent=0;
+                double promotePrice=0;
+                if(productPromote!=null && productPromote.Percent>0)
+                {
+                    promotePercent=productPromote.Percent;
+                    double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)item.Price).ToString("0.00"));
+                    promotePrice=item.Price-discountPrice;
+                }
+                item.PromotePrice=promotePrice;
+                item.PromotePercent=promotePercent;
+                
+                #endregion                   
             }
 
             //Commercial tax
@@ -3154,9 +3196,9 @@ namespace MayMayShop.API.Repos
             response.ShopName=MayMayShopConst.COMPANY_SHOP_NAME;
             response.Address=MayMayShopConst.COMPANY_SHOP_ADDRESS;
             response.PhoneNo=MayMayShopConst.COMPANY_PHONE_NO;
-            response.BuyerName=userInfo.Name;
-            response.BuyerPhoneNo=userInfo.PhoneNo;
-            response.BuyerAddress=userInfo.Address;
+            response.BuyerName=userInfo==null?"": userInfo.Name;
+            response.BuyerPhoneNo=userInfo==null?"":userInfo.PhoneNo;
+            response.BuyerAddress=userInfo==null?"":userInfo.Address;
             response.BuyerRemark=paymentInfo.Remark;
             response.VoucherNo=order.VoucherNo;
             response.OrderDate=order.OrderDate;
@@ -3172,6 +3214,7 @@ namespace MayMayShop.API.Repos
 
             return response;
         }
+
         public async Task<GetPOSVoucherResponse> GetPOSVoucher(int OrderId,int userId,string token)
         {
             GetPOSVoucherResponse response = new GetPOSVoucherResponse();
@@ -3228,7 +3271,31 @@ namespace MayMayShop.API.Repos
                 item.Name=await _context.Product
                         .Where(x=>x.Id==item.ProductId)
                         .Select(x=>x.Name)
-                        .SingleOrDefaultAsync();                      
+                        .SingleOrDefaultAsync();  
+
+                item.OriginalPrice=_context.ProductSku.Where(x=>x.ProductId==item.ProductId
+                                    && x.SkuId==item.SkuId)
+                                    .Select(x=>x.Price)
+                                    .SingleOrDefault();   
+                                    
+                #region GetPromotion
+
+                var productPromote = await _context.ProductPromotion
+                                                .Where(x => x.ProductId == item.ProductId)
+                                                .FirstOrDefaultAsync();
+
+                int promotePercent=0;
+                double promotePrice=0;
+                if(productPromote!=null && productPromote.Percent>0)
+                {
+                    promotePercent=productPromote.Percent;
+                    double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)item.Price).ToString("0.00"));
+                    promotePrice=item.Price-discountPrice;
+                }
+                item.PromotePrice=promotePrice;
+                item.PromotePercent=promotePercent;
+                
+                #endregion                                       
             }
 
             //Commercial tax
@@ -3251,7 +3318,7 @@ namespace MayMayShop.API.Repos
             response.PaymentType=paymentServices.Name;
             response.BankName=bank;
             response.TaxplayerId=MayMayShopConst.TAX_TAXPAYER_ID;
-            response.Cashier=userInfo.Name;
+            response.Cashier=userInfo==null?"":userInfo.Name;
             response.Changed=0;
             response.CommercialTax=commercialTax;
             response.ItemList=orderDetail;
@@ -3281,8 +3348,9 @@ namespace MayMayShop.API.Repos
             var orderId = _context.OrderTransaction.Where(x => x.Id == transactionId).Select(x => x.OrderId).FirstOrDefault();
             if (orderId != null)
             {
-                resp = GetOrderDetail(orderId,token);
+                resp = await GetOrderDetail(Convert.ToInt32(orderId),token);
             }
+            return resp;
         }
     }
 }

@@ -22,12 +22,14 @@ namespace MayMayShop.API.Repos
     public class MiscellaneousRepository : IMiscellaneousRepository
     {
         private readonly MayMayShopContext _context;
-        private readonly IMayMayShopServices _services;
+        private readonly IMayMayShopServices _services;        
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        public MiscellaneousRepository(MayMayShopContext context,IMayMayShopServices service)
+        public MiscellaneousRepository(MayMayShopContext context,IMayMayShopServices service,IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _services=service;
+            _httpContextAccessor=httpContextAccessor;
         }
         public Image FixedSize(Image imgPhoto, int width, int height)
         {
@@ -81,6 +83,9 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetMainCategoryResponse>> GetMainCategory()
         {
+            _httpContextAccessor.HttpContext.Request.Headers.TryGetValue("lang", out var header);
+            bool isZawgyi= header.First().ToLower()==MayMayShopConst.LANG_ZAWGYI.ToLower();
+
             return await _context.ProductCategory
                         .Where(x=>x.IsDeleted!=true && (x.SubCategoryId==0 || string.IsNullOrEmpty(x.SubCategoryId.ToString())))
                         .Select(x=> new GetMainCategoryResponse
@@ -115,13 +120,15 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetBankResponse>> GetBank()
         {
-            return await _context.Bank.Select(x=>new GetBankResponse{
+            return await _context.Bank
+            .Where(x=>x.IsDelete!=true)
+            .Select(x=>new GetBankResponse{
                 Id=x.Id,
                 Name=x.Name,
                 Url=x.Url,
                 SelectUrl=x.SelectUrl,
                 AccountNo=x.AccountNo,
-                HolderName=x.HolderName                
+                HolderName=x.HolderName               
             }).OrderBy(x=>x.Id).ToListAsync();
         }
         public async Task<List<GetTagResponse>> GetTag()
@@ -180,7 +187,7 @@ namespace MayMayShop.API.Repos
                     {
                         foreach(var item in request.SubCategory)
                         {
-                            if(!_context.ProductCategory.Any(x=>x.Name==request.Name && x.SubCategoryId != null && x.IsDeleted == false))
+                            if(!_context.ProductCategory.Any(x=>x.Id == mainCate.Id && x.Name==request.Name && x.SubCategoryId != null && x.IsDeleted == false))
                             {
                                 
                                 ProductCategory subCate=new ProductCategory(){
@@ -574,6 +581,8 @@ namespace MayMayShop.API.Repos
         } 
         #endregion
 
+        ///Brand
+
         public async Task<List<GetBrandResponse>> GetBrand()
         {
             return await _context.Brand.Select(x=>new GetBrandResponse{
@@ -582,6 +591,36 @@ namespace MayMayShop.API.Repos
                 LogoUrl = x.LogoUrl,
                 Url=x.Url,               
             }).OrderBy(x=>x.Id).ToListAsync();
+        }
+
+        public async Task<ResponseStatus> AddBrand(AddBrandRequest request, string imageurl, string logourl)
+        {
+            var data=new Brand(){
+                Name = request.Name,
+                Url = imageurl,
+                LogoUrl = logourl
+            };
+            _context.Brand.Add(data);
+            await _context.SaveChangesAsync();
+            return new ResponseStatus(){StatusCode=StatusCodes.Status200OK,Message="Successfully Added."};
+        }
+
+        public async Task<ResponseStatus> UpdateBrand(UpdateBrandRequest request, string imageurl, string logourl)
+        {
+            var data=await _context.Brand.Where(x=>x.Id==request.Id).SingleOrDefaultAsync();
+            data.Name=request.Name;
+            data.Url=imageurl;
+            data.LogoUrl = logourl;
+            await _context.SaveChangesAsync();
+            return new ResponseStatus(){StatusCode=StatusCodes.Status200OK,Message="Successfully Updated."};
+        }
+
+        public async Task<ResponseStatus> DeleteBrand(int id)
+        {
+            var data=await _context.Brand.Where(x=>x.Id==id).SingleOrDefaultAsync();
+            data.IsDeleted = true;
+            await _context.SaveChangesAsync();
+            return new ResponseStatus(){StatusCode=StatusCodes.Status200OK,Message="Successfully Deleted."};
         }
     }
 }

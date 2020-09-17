@@ -12,5 +12,6 @@ namespace MayMayShop.API.Models
         public string HolderName {get;set;}
         public DateTime CreatedDate {get;set;}
         public int CreatedBy {get;set;}
+        public bool IsDelete {get;set;}
     }
 }

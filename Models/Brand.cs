@@ -8,5 +8,7 @@ namespace MayMayShop.API.Models
         public string LogoUrl {get;set;}
 
         public string Url {get;set;}
+
+        public bool IsDeleted {get;set;}
     }
 }

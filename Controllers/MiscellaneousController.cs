@@ -658,10 +658,77 @@ namespace MayMayShop.API.Controllers
 
         #endregion
 
+        //Brand 
+        [HttpPost("AddBrand")]
+        public async Task<IActionResult> AddBrand(AddBrandRequest request)
+        {
+            try
+            {
+                ImageUrlResponse img  =new ImageUrlResponse();                
+                img = await _services.UploadToS3NoFixedSize(request.CoverImage.ImageContent, request.CoverImage.Extension,MayMayShopConst.AWS_BRAND_BANNER_PATH);
+
+                ImageUrlResponse logo  =new ImageUrlResponse();                
+                logo = await _services.UploadToS3(request.LogoImage.ImageContent, request.LogoImage.Extension,MayMayShopConst.AWS_BRAND_LOGO_PATH);
+
+                var response= await _repo.AddBrand(request, img.ImgPath, logo.ImgPath);
+
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("UpdateBrand")]
+        public async Task<IActionResult> UpdateBrand(UpdateBrandRequest request)
+        {
+            try
+            {
+                var brand = await _context.Brand.Where(x => x.Id == request.Id).FirstOrDefaultAsync();
+                await _services.DeleteFromS3(brand.Url,brand.Url);
+                await _services.DeleteFromS3(brand.LogoUrl,brand.LogoUrl);
+
+                ImageUrlResponse img  =new ImageUrlResponse();                
+                img = await _services.UploadToS3NoFixedSize(request.CoverImage.ImageContent, request.CoverImage.Extension,MayMayShopConst.AWS_BRAND_BANNER_PATH);
+
+                ImageUrlResponse logo  =new ImageUrlResponse();                
+                logo = await _services.UploadToS3(request.LogoImage.ImageContent, request.LogoImage.Extension,MayMayShopConst.AWS_BRAND_LOGO_PATH);
+
+                var response= await _repo.UpdateBrand(request, img.ImgPath, logo.ImgPath);
+
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("DeleteBrand")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> DeleteBrand(int id)
+        {
+            try
+            {
+                var currentLoginID = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                
+                var response= await _repo.DeleteBrand(id);
+
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
         [HttpGet("GetBrand")]
-        // [Authorize]
-        // [ServiceFilter(typeof(ActionActivity))]
-        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBrand()
         {
             try

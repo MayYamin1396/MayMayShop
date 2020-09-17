@@ -187,6 +187,26 @@ namespace MayMayShop.API.Controllers
             }
         }
 
+        [HttpDelete("DeleteProductReward")]
+        public async Task<IActionResult> DeleteProductReward(int id)
+        {
+            try
+            {          
+                var response = await _memberPointRepo.DeleteProductReward(id);
+                if (response == null)
+                {
+                    return Ok(new { message = "No Result Found!" });
+                }               
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+
         [HttpPost("RedeemOrder")]
         public async Task<IActionResult> RedeemOrder(RedeemOrderRequest request)
         {

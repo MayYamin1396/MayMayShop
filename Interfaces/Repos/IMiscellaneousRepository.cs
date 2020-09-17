@@ -38,6 +38,10 @@ namespace MayMayShop.API.Interfaces.Repos
         #region Activity Log API
         Task<string> GetLastActiveByUserId(int id);
         #endregion
+
+        Task<ResponseStatus> AddBrand(AddBrandRequest request, string imageurl, string logourl);
+        Task<ResponseStatus> UpdateBrand(UpdateBrandRequest request, string imageurl, string logourl);
+        Task<ResponseStatus> DeleteBrand(int id);
         Task<List<GetBrandResponse>> GetBrand();
     }
 }

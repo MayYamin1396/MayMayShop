@@ -658,6 +658,25 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
+
+        [HttpGet("GetProductByBrand")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+
+        public async Task<IActionResult> GetProductByBrand([FromQuery]GetProductByBrandRequest request)
+        {
+            try
+            {
+                var response = await _repo.GetProductByBrand(request);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
     
     }
 }

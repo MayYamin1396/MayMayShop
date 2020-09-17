@@ -229,7 +229,7 @@ namespace MayMayShop.API.Repos
                             .Take(request.PageSize)
                             .ToListAsync();          
         }
-         public async Task<GetRewardProductByIdResponse> GetRewardProductById(GetRewardProductByIdRequest request)
+        public async Task<GetRewardProductByIdResponse> GetRewardProductById(GetRewardProductByIdRequest request)
         {
             var productReward=await _context.ProductReward
                             .Where(x=>x.Id==request.ProductRewardId)
@@ -419,6 +419,24 @@ namespace MayMayShop.API.Repos
             productReward.VariantValues = await _productRepo.GetVariantValue(vvreq);
 
             return productReward;
+        }
+        public async Task<ResponseStatus> DeleteProductReward(int id)
+        {
+            var response=new ResponseStatus();
+            var productReward=await _context.ProductReward.Where(x=>x.Id==id)
+            .SingleOrDefaultAsync();
+            if(productReward!=null)
+            {
+                _context.ProductReward.Remove(productReward);
+                await _context.SaveChangesAsync();
+                response.StatusCode=StatusCodes.Status200OK;
+                response.Message="Success";
+            }
+            else{
+                 response.StatusCode=StatusCodes.Status400BadRequest;
+                 response.Message="Record not found!";
+            }
+            return response;
         }
         public async Task<PostOrderResponse> RedeemOrder(RedeemOrderRequest request,int currentUserLogin,string token)
         {
@@ -835,7 +853,6 @@ namespace MayMayShop.API.Repos
             response.TransactionId = transaction.Id;
             return response;
         }
-
         public async Task<List<GetConfigMemberPointProductCategory>> GetProductCategoryForCreateConfigMemberPoint(string token)
         {
             var productCategoryList=await _memberPointServices.GetProductCategoryForCreateConfigMemberPoint(token);
@@ -856,7 +873,6 @@ namespace MayMayShop.API.Repos
                             
             return productCategory;
         }
-
         public async Task<GetOrderDetailForMemberPoint_MS_Response> GetOrderDetailForMemberPoint_MS(string voucherNo)
         {     
             var data=await _context.Order
@@ -886,7 +902,7 @@ namespace MayMayShop.API.Repos
             var paymentStatusId=await _context.OrderPaymentInfo
             .Where(x=>x.OrderId==data.OrderId)
             .OrderByDescending(x=>x.TransactionDate)
-            .Select(x=>x.Id)
+            .Select(x=>x.PaymentStatusId)
             .FirstOrDefaultAsync();
 
             data.PaymentStatus=await _context.PaymentStatus.Where(x=>x.Id==paymentStatusId).Select(x=>x.Name).FirstOrDefaultAsync();

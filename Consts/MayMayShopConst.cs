@@ -10,6 +10,7 @@ namespace MayMayShop.API.Const
         public readonly static string PARAM_APPLICATION = "MayMayShop";        
         public readonly static string PARAM_ORDERSTATUS = PARAM_APPLICATION + ".orderStatus";
         public readonly static string PARAM_PLATFORM = PARAM_APPLICATION + ".platform";
+        public readonly static string PARAM_LANG = PARAM_APPLICATION + ".lang";
         public readonly static string PARAM_SEARCH_KEYWORD = PARAM_APPLICATION + ".searchKeyword";
         public readonly static string PARAM_ACTIVITY_TYPE = PARAM_APPLICATION + ".activityType";
         public readonly static string PARAM_TAX = PARAM_APPLICATION + ".tax";
@@ -70,6 +71,9 @@ namespace MayMayShop.API.Const
         public static string AWS_BANNER_PATH {get;set;}
         public static string AWS_USER_PROFILE_PATH {get;set;}
         public static string AWS_IMG_HOSTED {get;set;}
+
+        public static string AWS_BRAND_BANNER_PATH {get;set;}
+        public static string AWS_BRAND_LOGO_PATH {get;set;}
         public static string FCM_TOKEN_KEY_BUYER;
         public static string FCM_SENDER_ID_BUYER { get; set; }
         public static string FCM_TOKEN_KEY_SELLER;
@@ -86,7 +90,9 @@ namespace MayMayShop.API.Const
         public static int PLATFORM_ANDROID;
         public static int PLATFORM_IOS;
         public static int PLATFORM_WEB;
-
+        
+        public static string LANG_UNICODE;
+        public static string LANG_ZAWGYI;
         public static int ACTIVITY_TYPE_SEARCH {get;set;}
         public static int ACTIVITY_TYPE_ADD_TO_CART;
         public static int ACTIVITY_TYPE_REMOVE_FROM_CART;
@@ -266,6 +272,8 @@ namespace MayMayShop.API.Const
             AWS_USER_PROFILE_PATH = xmlRetriever.GetParameter(PARAM_AWS +  ".userProfilePath");
             AWS_KEY_PATH = xmlRetriever.GetParameter(PARAM_AWS +  ".keyPath");
             AWS_IMG_HOSTED = xmlRetriever.GetParameter(PARAM_AWS +  ".imgHosted");
+            AWS_BRAND_BANNER_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandBannerPath");
+            AWS_BRAND_LOGO_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandLogoPath");
 
             FCM_TOKEN_KEY_BUYER = xmlRetriever.GetParameter(PARAM_FCM + ".tokenKeyBuyer");
             FCM_SENDER_ID_BUYER = xmlRetriever.GetParameter(PARAM_FCM + ".senderIdBuyer");
@@ -321,6 +329,9 @@ namespace MayMayShop.API.Const
             PLATFORM_ANDROID = int.Parse(xmlRetriever.GetParameter(PARAM_PLATFORM + ".android"));
             PLATFORM_IOS = int.Parse(xmlRetriever.GetParameter(PARAM_PLATFORM + ".ios"));
             PLATFORM_WEB = int.Parse(xmlRetriever.GetParameter(PARAM_PLATFORM + ".web"));
+
+            LANG_UNICODE = xmlRetriever.GetParameter(PARAM_LANG + ".unicode");
+            LANG_ZAWGYI = xmlRetriever.GetParameter(PARAM_LANG + ".zawgyi");
 
             ACTIVITY_TYPE_SEARCH = int.Parse(xmlRetriever.GetParameter(PARAM_ACTIVITY_TYPE + ".search"));
             ACTIVITY_TYPE_ADD_TO_CART = int.Parse(xmlRetriever.GetParameter(PARAM_ACTIVITY_TYPE + ".addToCart"));
