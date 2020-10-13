@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MayMayShop.API.Dtos.MiscellanceousDto;
 
 namespace MayMayShop.API.Dtos.OrderDto
 {
@@ -14,6 +15,8 @@ namespace MayMayShop.API.Dtos.OrderDto
         public GetCartDetailDeliveryInfo DeliveryInfo { get; set; }
 
         public List<GetCartDetailPaymentService> PaymentService { get; set; }
+        public List<GetPaymentServiceForBuyerResponse> NewPaymentService { get; set; }
+        public List<ProductIssues> ProductIssues{get;set;}
     }
 
     public class GetCartDetailProductInfo

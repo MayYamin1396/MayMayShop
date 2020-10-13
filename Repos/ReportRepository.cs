@@ -8,9 +8,11 @@ using MayMayShop.API.Dtos;
 using MayMayShop.API.Dtos.ProductDto;
 using MayMayShop.API.Dtos.ReportDto;
 using MayMayShop.API.Dtos.UserDto;
+using MayMayShop.API.Helpers;
 using MayMayShop.API.Interfaces.Repos;
 using MayMayShop.API.Interfaces.Services;
 using MayMayShop.API.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace MayMayShop.API.Repos
@@ -20,15 +22,19 @@ namespace MayMayShop.API.Repos
         private readonly MayMayShopContext _context;
         private readonly IUserServices _userServices;
         private readonly IMayMayShopServices _MayMayShopServices;
-        public ReportRepository(MayMayShopContext context,IUserServices userServices,IMayMayShopServices MayMayShopServices)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ReportRepository(MayMayShopContext context,IUserServices userServices,IMayMayShopServices MayMayShopServices,IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _userServices = userServices;
             _MayMayShopServices=MayMayShopServices;
+            _httpContextAccessor=httpContextAccessor;
         }
 
         public async Task<List<GetActivityLogResponse>> GetActivityLog(GetActivityLogRequest request,string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             List<GetActivityLogResponse> logList=new List<GetActivityLogResponse>();
             var data=await _context.ActivityLog
                     .OrderByDescending(x=>x.CreatedDate)
@@ -50,7 +56,7 @@ namespace MayMayShop.API.Repos
                     
                     GetActivityLogResponse log=new GetActivityLogResponse(){
                         Id=item.Id,
-                        UserName=user.Name,
+                        UserName=isZawgyi?Rabbit.Uni2Zg(user.Name):user.Name,
                         ActivityType=_context.ActivityType.Where(x=>x.Id==item.ActivityTypeId).Select(x=>x.Name).SingleOrDefault(),
                         Description=desc,
                         TimeAgo=_MayMayShopServices.GetPrettyDate(item.CreatedDate),
@@ -70,9 +76,11 @@ namespace MayMayShop.API.Repos
                     }
                     else{
                         user=await _userServices.GetUserInfo(item.UserId,token);
+                        user.Name=isZawgyi?Rabbit.Uni2Zg(user.Name):user.Name;                        
                     }
                     string desc="";
                     int search=MayMayShopConst.ACTIVITY_TYPE_SEARCH;
+                    item.Value=isZawgyi?Rabbit.Uni2Zg(item.Value):item.Value;
 
                     if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_SEARCH)
                     {
@@ -86,7 +94,7 @@ namespace MayMayShop.API.Repos
 
                     else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_REMOVE_FROM_CART)
                     {
-                        desc=string.Format("{0} removed ({1})",user.Name,item.Value);
+                        desc=string.Format("{0} removed ({1}) from cart.",user.Name,item.Value);
                     }
 
                     else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_ORDER)
@@ -96,14 +104,32 @@ namespace MayMayShop.API.Repos
 
                     else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_ORDER_CANCEL)
                     {
-                        desc="";
+                        var userType=user.UserTypeId==2?"Seller":"Buyer";
+                        desc=string.Format("{0} ({1}) cancel voucher - {2}",user.Name,userType,item.Value);
                     }
 
                     else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_REGISTER)
                     {
                         desc=string.Format("{0} registered an account ",user.Name,item.Value);
                     }
-                   
+                    else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_MAKE_PAYMENT)
+                    {
+                        desc=string.Format("{0} made a payment for voucher - {1} ",user.Name,item.Value);
+                    }
+                    else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_PAYMENT_STATUS)
+                    {
+                        var userType=user.UserTypeId==2?"Seller":"Buyer";
+                        var strArr=item.Value.Split("#");
+                        var paymentStatus=int.Parse(strArr[0])==MayMayShopConst.PAYMENT_STATUS_SUCCESS?"approved":"reject";
+                        desc=string.Format("{0} ({1}) {2} payment for voucher {3} ",user.Name,userType,paymentStatus,strArr[1]);
+                    }
+                    else if(item.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_ORDER_STATUS)
+                    {
+                        var strArr=item.Value.Split("#");
+                        int orderStatusID=int.Parse(strArr[0]);
+                        var orderStatus=_context.OrderStatus.Where(x=>x.Id==orderStatusID).Select(x=>x.Name).SingleOrDefault();
+                        desc=string.Format("{0} updated order status to {1} for voucher - {2} ",user.Name,orderStatus,strArr[1]);
+                    }
                     GetActivityLogResponse log=new GetActivityLogResponse(){
                         Id=item.Id,
                         UserName=user.Name,
@@ -123,7 +149,7 @@ namespace MayMayShop.API.Repos
         }
 
         public async Task<List<GetProductSearchResponse>> GetProductSearch(GetProductSearchRequest request)
-        {
+        {            
             if(request.SearchType==MayMayShopConst.SEARCH_KEYWORD_WITH_RESULT)
             {
                 return await ( from al in _context.ActivityLog
@@ -133,9 +159,9 @@ namespace MayMayShop.API.Repos
                 && al.ResultCount>0
                 group al by new { al.Value, al.CreatedDate.Date } into g
                 select new { Value=g.Key.Value,
-                             CreatedDate=g.Key.Date,
-                             ResultCount = g.Sum(x => x.ResultCount),
-                             NoOfSearch= g.Count()}
+                            CreatedDate=g.Key.Date,
+                            ResultCount = g.Sum(x => x.ResultCount),
+                            NoOfSearch= g.Count()}
                 )
                 .Skip((request.PageNumber-1))
                 .Take(request.PageSize)
@@ -156,9 +182,9 @@ namespace MayMayShop.API.Repos
                 && (al.ResultCount==null || al.ResultCount<=0)
                 group al by new { al.Value, al.CreatedDate.Date } into g
                 select new { Value=g.Key.Value,
-                             CreatedDate=g.Key.Date,
-                             ResultCount = g.Sum(x => x.ResultCount),
-                             NoOfSearch= g.Count()}
+                            CreatedDate=g.Key.Date,
+                            ResultCount = g.Sum(x => x.ResultCount),
+                            NoOfSearch= g.Count()}
                 )
                 .Skip((request.PageNumber-1))
                 .Take(request.PageSize)
@@ -217,8 +243,8 @@ namespace MayMayShop.API.Repos
             
             totalVisitor_IOS=await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=request.FromDate.Date
                             && x.CreatedDate.Date<=request.ToDate.Date
-                             && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP
-                             && x.PlatformId==MayMayShopConst.PLATFORM_IOS).CountAsync();
+                            && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP
+                            && x.PlatformId==MayMayShopConst.PLATFORM_IOS).CountAsync();
 
             totalVisitor_Web=await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=request.FromDate.Date
                             && x.CreatedDate.Date<=request.ToDate.Date
@@ -253,6 +279,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<GetSearchKeywordResponse> GetSearchKeyword(GetSearchKeywordRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+            
             int dateDiff=(request.ToDate.Date - request.FromDate.Date).Days + 1;
 
             var topSearchKeyword =await  (from trn in _context.SearchKeywordTrns
@@ -261,7 +289,7 @@ namespace MayMayShop.API.Repos
                                     group trn by trn.SearchKeywordId into newGroup
                                     orderby newGroup.Key
                                     select new TopKeyword{
-                                        Name=_context.SearchKeyword.Where(x=>x.Id==newGroup.Key).Select(x=>x.Name).SingleOrDefault(),
+                                        Name=_context.SearchKeyword.Where(x=>x.Id==newGroup.Key).Select(x=>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name).SingleOrDefault(),
                                         KeywordId=newGroup.Key,
                                         Count=newGroup.Sum(x=>x.Count),
                                     })
@@ -316,6 +344,121 @@ namespace MayMayShop.API.Repos
             
             return new ResponseStatus(){StatusCode=200,Message="Successfully registered."};
         }
+        public async Task<GetSalesAndPerformanceResponse> GetSalesAndPerformance(GetSalesAndPerformanceRequest request)
+        {
+            var resp = new GetSalesAndPerformanceResponse();
+            int totalVisitor = 0;
     
+            int newUser = 0;
+            int totalSales = 0;
+
+            //get previous month
+            var previousMonth = request.FromDate.AddMonths(-1);
+            var preFromDate = new DateTime(previousMonth.Year, previousMonth.Month, 1);
+            var preToDate = preFromDate.AddMonths(1).AddDays(-1);
+
+            // Traffic
+            totalVisitor = await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=request.FromDate.Date
+                            && x.CreatedDate.Date<=request.ToDate.Date
+                            && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP).CountAsync();
+            resp.TotalTraffic = totalVisitor;
+
+
+            // get previous month's traffic 
+            var preVisitor = await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=preFromDate.Date
+                            && x.CreatedDate.Date<=preToDate.Date
+                            && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP).CountAsync();
+            
+            double diffVisitor = totalVisitor/preVisitor * 100;
+            resp.TrafficRate = diffVisitor - 100;
+
+            // New User
+            newUser = await _context.ActivityLog.Where(x => x.CreatedDate.Date>=request.FromDate.Date
+                        && x.CreatedDate.Date <= request.ToDate.Date
+                        && x.ActivityTypeId == MayMayShopConst.ACTIVITY_TYPE_REGISTER).CountAsync();
+            resp.NewUser = newUser;
+
+            // get previous month's user 
+            var preUser = await _context.ActivityLog.Where(x => x.CreatedDate.Date>=preFromDate.Date
+                        && x.CreatedDate.Date <= preToDate.Date
+                        && x.ActivityTypeId == MayMayShopConst.ACTIVITY_TYPE_REGISTER).CountAsync();
+            
+            double diffUser = newUser/preUser * 100;
+            resp.NewUserRate = diffUser - 100;
+
+            // Payment Status for check and fail
+            int[] paymentStatus=new int[2]{1,3};
+
+            // Get order id that status are check and fail
+            int[] paymentInfoOrderId=await _context.OrderPaymentInfo
+                            .Where(x=>x.TransactionDate.Date>=request.FromDate.Date
+                            && x.TransactionDate.Date<=request.ToDate.Date
+                            && paymentStatus.Contains(x.PaymentServiceId))
+                            .Select(x=>x.OrderId)
+                            .ToArrayAsync();
+
+            // Get order list that status are not in check, fail, and reject.
+            totalSales = await _context.Order
+                            .Include(x=>x.OrderDetail)
+                            .Where(x=>x.OrderDate.Date>=request.FromDate.Date
+                                && x.OrderDate.Date<=request.ToDate.Date
+                                && x.OrderStatusId!=5
+                                && !paymentInfoOrderId.Contains(x.Id))
+                            .CountAsync();
+            resp.Sales = totalSales;
+
+            // Get pre order id that status are check and fail
+            int[] prepaymentInfoOrderId=await _context.OrderPaymentInfo
+                            .Where(x=>x.TransactionDate.Date>=preFromDate.Date
+                            && x.TransactionDate.Date<=preToDate.Date
+                            && paymentStatus.Contains(x.PaymentServiceId))
+                            .Select(x=>x.OrderId)
+                            .ToArrayAsync();
+
+            // get previous month's sales 
+            var preSales = await _context.Order
+                            .Include(x=>x.OrderDetail)
+                            .Where(x=>x.OrderDate.Date>=preFromDate.Date
+                                && x.OrderDate.Date<=preToDate.Date
+                                && x.OrderStatusId!=5
+                                && !prepaymentInfoOrderId.Contains(x.Id))
+                            .CountAsync();
+            
+            double diffSales = totalSales/preSales * 100;
+            resp.SaleRate = diffSales - 100;
+
+            // Performance
+
+            return resp;
+        }
+
+        public async Task<GetVisitorsResponse> GetVisitors(GetSalesAndPerformanceRequest request)
+        {
+            int totalVisitor_Android=0;
+            int totalVisitor_IOS = 0;
+            int totalVisitor_Web = 0;
+            var resp = new GetVisitorsResponse();
+
+            totalVisitor_Android=await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=request.FromDate.Date
+                            && x.CreatedDate.Date<=request.ToDate.Date
+                            && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP
+                            && x.PlatformId==MayMayShopConst.PLATFORM_ANDROID).CountAsync();
+            resp.TotalVisitor_Android = totalVisitor_Android;
+            
+            totalVisitor_IOS=await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=request.FromDate.Date
+                            && x.CreatedDate.Date<=request.ToDate.Date
+                            && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP
+                            && x.PlatformId==MayMayShopConst.PLATFORM_IOS).CountAsync();
+            resp.TotalVisitor_IOS = totalVisitor_IOS;
+
+            totalVisitor_Web=await _context.ActivityLog.Where(x=>x.CreatedDate.Date>=request.FromDate.Date
+                            && x.CreatedDate.Date<=request.ToDate.Date
+                            && x.ActivityTypeId==MayMayShopConst.ACTIVITY_TYPE_IP
+                            && x.PlatformId==MayMayShopConst.PLATFORM_WEB).CountAsync();
+            resp.TotalVisitor_Web = totalVisitor_Web;
+
+            return resp;
+            
+        }
     }
 }

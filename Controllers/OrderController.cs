@@ -16,6 +16,8 @@ using System.Net;
 using MayMayShop.API.Const;
 using System.Linq;
 using DeviceDetectorNET.Parser;
+using MayMayShop.API.Dtos.GatewayDto;
+using Newtonsoft.Json;
 
 namespace MayMayShop.API.Controllers
 {
@@ -160,7 +162,7 @@ namespace MayMayShop.API.Controllers
             }
             catch(Exception e)
             {
-                log.Error(e.Message);
+                log.Error(e.Message+", inner => "+e.InnerException.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
@@ -359,28 +361,6 @@ namespace MayMayShop.API.Controllers
             }
         }
 
-        
-
-        [HttpPost("PostOrderByWavePay")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
-        public async Task<IActionResult> PostOrderByWavePay(PostOrderRequest request)
-        {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                string token = Request.Headers["Authorization"];
-                var response= await _repo.PostOrderByWavePay(request,userId,token);
-                return Ok(response);
-            }
-            catch (Exception e)
-            {
-                log.Error(e.Message);
-                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
-            }
-        }
-
         [HttpPost("CheckKPayStatus")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]
@@ -421,6 +401,26 @@ namespace MayMayShop.API.Controllers
                 {
                     return StatusCode(response.StatusCode,response);
                 }
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("PostOrderByWavePay")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> PostOrderByWavePay(PostOrderRequest request)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                string token = Request.Headers["Authorization"];
+                var response= await _repo.PostOrderByWavePay(request,userId,token);
                 return Ok(response);
             }
             catch (Exception e)
@@ -513,7 +513,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetOrderHistory(request);
                 if (response == null || response.Count == 0)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -535,7 +535,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetOrderHistorySeller(request);
                 if (response == null || response.Count == 0)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest,"No Result Found!");
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }
                 return Ok(response);
             }
@@ -606,7 +606,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.SeenNotification(request,userId);
                 if (response.StatusCode !=StatusCodes.Status200OK)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }
                 return Ok(response);
             }
@@ -960,7 +960,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetOrderDetail(orderId, token);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }
                 return Ok(response);
             }
@@ -982,7 +982,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetOrderListByProduct(request);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }
                 return Ok(response);
             }
@@ -1003,7 +1003,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _repo.GetOrderListByProductId(request);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }
                 return Ok(response);
             }
@@ -1086,13 +1086,18 @@ namespace MayMayShop.API.Controllers
             }
         }
     
-        [HttpGet("CallBackKPayNotify")]
+        [HttpPost("CallBackKPayNotify")]
         [AllowAnonymous]
-        public async Task<IActionResult> CallBackKPayNotify(string transactionId)
+        public async Task<IActionResult> CallBackKPayNotify(KBZNotifyRequest request)
         {
+            log.Info(string.Format("KPay Notify Request - {0}",JsonConvert.SerializeObject(request)));
+            
             try
             {
-                var response = await _repo.CallBackKPayNotify(transactionId);
+                var response = await _repo.CallBackKPayNotify(request);
+
+                log.Info(string.Format("KPay Notify Response - {0}",response));
+
                 return Ok(response);
             }
             catch (Exception e)
@@ -1102,24 +1107,5 @@ namespace MayMayShop.API.Controllers
             }
         }
 
-        [HttpGet("GetOrderDetailByTransactionId")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
-        public async Task<IActionResult> GetOrderDetailByTransactionId(string transactionId)
-        {
-            try
-            {
-                string token = Request.Headers["Authorization"];
-                var response = await _repo.GetOrderDetailByTransactionId(transactionId,token);
-                return Ok(response);
-            }
-            catch (Exception e)
-            {
-                log.Error(e.Message);
-                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
-            }
-        }
-    
     }
 }

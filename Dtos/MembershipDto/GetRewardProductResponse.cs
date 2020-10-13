@@ -8,6 +8,7 @@ namespace MayMayShop.API.Dtos.MembershipDto
         public int ProductId {get;set;}
         public string Name {get;set;}
         public string Url {get;set;}
+        public int Qty{get;set;}
         public DateTime StartDate {get;set;}
         public DateTime EndDate {get;set;}
         public double OriginalPrice {get;set;}

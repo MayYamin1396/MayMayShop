@@ -26,13 +26,13 @@ namespace MayMayShop.API.Models
 
         //public virtual Township Township { get; set; }
         
-        [StringLength(500)] 
+        
         public string Address { get; set; }
 
-        [StringLength(50)] 
+        
         public string PhNo { get; set; }
 
-        [StringLength(500)] 
+        
         public string Remark { get; set; }     
         public DateTime DeliveryDate{get;set;}  
 

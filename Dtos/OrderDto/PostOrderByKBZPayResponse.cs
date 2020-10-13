@@ -1,4 +1,5 @@
 
+using System.Collections.Generic;
 using MayMayShop.API.Dtos.GatewayDto;
 
 namespace MayMayShop.API.Dtos.OrderDto
@@ -13,5 +14,6 @@ namespace MayMayShop.API.Dtos.OrderDto
         public string TransactionId {get;set;}
 
         public KBZPrecreateResponse Precreate { get; set; }
+        public List<ProductIssues> ProductIssues{get;set;}
     }
 }

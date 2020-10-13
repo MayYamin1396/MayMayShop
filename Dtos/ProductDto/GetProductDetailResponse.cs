@@ -15,6 +15,7 @@ namespace MayMayShop.API.Dtos.ProductDto
         public int PromotePercent { get; set; }
         public int Qty { get; set; }
         public int ProductCategoryId {get;set;}
+        public string SharedUrl {get;set;}
         // public List<ProductTag> ProductTag {get;set;}
         public List<Tag> TagsList {get;set;}
         public List<ProductImage> ProductImage {get;set;}

@@ -39,7 +39,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetConfigMemberPoint(token);
                 if (response == null || response.Count == 0)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -59,7 +59,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetConfigMemberPointById(id,token);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -78,7 +78,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.CreateProductReward(request);
                 if (response.StatusCode !=StatusCodes.Status200OK)
                 {
-                    return StatusCode(response.StatusCode,response);
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -97,7 +97,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.UpdateProductReward(request);
                 if (response.StatusCode !=StatusCodes.Status200OK)
                 {
-                    return StatusCode(response.StatusCode,response);
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -114,10 +114,10 @@ namespace MayMayShop.API.Controllers
             try
             {                
                 var response = await _memberPointRepo.GetRewardProduct(request);
-                if (response == null || response.Count == 0)
-                {
-                    return Ok(new { message = "No Result Found!" });
-                }               
+                // if (response == null || response.Count == 0)
+                // {
+                //     return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
+                // }               
                 return Ok(response);
             }
             catch (Exception e)
@@ -134,7 +134,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetRewardProductById(request);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                   return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -155,7 +155,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetRewardProductDetail(request,userId,token);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -176,7 +176,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetCartDetailForReward(productId,skuId,userId,token);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -195,7 +195,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.DeleteProductReward(id);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -217,7 +217,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.RedeemOrder(request,userId,token);
                 if (response.StatusCode !=StatusCodes.Status200OK)
                 {
-                    return StatusCode(response.StatusCode,response);
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -236,10 +236,6 @@ namespace MayMayShop.API.Controllers
                 string token = Request.Headers["Authorization"];
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);      
                 var response = await _memberPointRepo.RedeemOrderByKBZPay(request,userId,token);
-                if (response.StatusCode !=StatusCodes.Status200OK)
-                {
-                    return StatusCode(response.StatusCode,response);
-                }               
                 return Ok(response);
             }
             catch (Exception e)
@@ -258,7 +254,7 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetProductCategoryForCreateConfigMemberPoint(token);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }
@@ -277,7 +273,26 @@ namespace MayMayShop.API.Controllers
                 var response = await _memberPointRepo.GetOrderDetailForMemberPoint_MS(voucherNo);
                 if (response == null)
                 {
-                    return Ok(new { message = "No Result Found!" });
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
+                }               
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpGet("GetProductListForAddProductReward")]
+        public async Task<IActionResult> GetProductListForAddProductReward([FromQuery]GetProductListForAddProductRewardRequest request)
+        {
+            try
+            {                         
+                var response = await _memberPointRepo.GetProductListForAddProductReward(request);
+                if (response == null)
+                {
+                    return BadRequest(new {status = StatusCodes.Status400BadRequest,message = "No Result Found!"});
                 }               
                 return Ok(response);
             }

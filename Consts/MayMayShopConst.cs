@@ -1,4 +1,5 @@
 using MayMayShop.API.Helpers;
+using MayMayShop.API.Helpers;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -90,9 +91,10 @@ namespace MayMayShop.API.Const
         public static int PLATFORM_ANDROID;
         public static int PLATFORM_IOS;
         public static int PLATFORM_WEB;
-        
+
         public static string LANG_UNICODE;
         public static string LANG_ZAWGYI;
+
         public static int ACTIVITY_TYPE_SEARCH {get;set;}
         public static int ACTIVITY_TYPE_ADD_TO_CART;
         public static int ACTIVITY_TYPE_REMOVE_FROM_CART;
@@ -131,6 +133,21 @@ namespace MayMayShop.API.Const
         public static int PAYMENT_SERVICE_BANK;
         public static int PAYMENT_SERVICE_VISA;
         public static int PAYMENT_SERVICE_COD;
+        public static int PAYMENT_SERVICE_MYTEL_PAY;
+        public static int PAYMENT_SERVICE_SAISAI_PAY;
+        public static int PAYMENT_SERVICE_CB_PAY;
+        public static int PAYMENT_SERVICE_AYA_PAY;
+        public static int PAYMENT_SERVICE_ONE_PAY;
+        public static int PAYMENT_SERVICE_WAVE_MONEY_MANUAL;
+        public static int PAYMENT_SERVICE_KPAY_MANUAL;
+        public static int PAYMENT_SERVICE_OK_DOLLAR_MANUAL;
+        public static int PAYMENT_SERVICE_MASTER_MANUAL;
+        public static int PAYMENT_SERVICE_VISA_MANUAL;
+        public static int PAYMENT_SERVICE_MYTEL_PAY_MANUAL;
+        public static int PAYMENT_SERVICE_SAISAI_PAY_MANUAL;
+        public static int PAYMENT_SERVICE_CB_PAY_MANUAL;
+        public static int PAYMENT_SERVICE_AYA_PAY_MANUAL;
+        public static int PAYMENT_SERVICE_ONE_PAY_MANUAL;
 
         public static int PAYMENT_STATUS_CHECK;
         public static int PAYMENT_STATUS_SUCCESS;
@@ -272,8 +289,6 @@ namespace MayMayShop.API.Const
             AWS_USER_PROFILE_PATH = xmlRetriever.GetParameter(PARAM_AWS +  ".userProfilePath");
             AWS_KEY_PATH = xmlRetriever.GetParameter(PARAM_AWS +  ".keyPath");
             AWS_IMG_HOSTED = xmlRetriever.GetParameter(PARAM_AWS +  ".imgHosted");
-            AWS_BRAND_BANNER_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandBannerPath");
-            AWS_BRAND_LOGO_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandLogoPath");
 
             FCM_TOKEN_KEY_BUYER = xmlRetriever.GetParameter(PARAM_FCM + ".tokenKeyBuyer");
             FCM_SENDER_ID_BUYER = xmlRetriever.GetParameter(PARAM_FCM + ".senderIdBuyer");
@@ -318,7 +333,6 @@ namespace MayMayShop.API.Const
             WAVE_MERCHANT_NAME = xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".merch_name");
             WAVE_TIME_TO_LIVE_IN_SECONDS = int.Parse(xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".time_sec"));
             WAVE_AUTHENTICATE_URI = xmlRetriever.GetParameter(PARAM_WAVE_PAY + ".authenticate_uri");
-
 
             ORDER_STATUS_ORDER =int.Parse(xmlRetriever.GetParameter(PARAM_ORDERSTATUS + ".order"));
             ORDER_STATUS_TAKE = int.Parse(xmlRetriever.GetParameter(PARAM_ORDERSTATUS + ".take"));
@@ -368,6 +382,22 @@ namespace MayMayShop.API.Const
             PAYMENT_SERVICE_VISA = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".visa"));
             PAYMENT_SERVICE_COD = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".cod"));
 
+            PAYMENT_SERVICE_MYTEL_PAY = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".mytelPay"));
+            PAYMENT_SERVICE_SAISAI_PAY = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".saisaiPay"));
+            PAYMENT_SERVICE_CB_PAY = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".cbPay"));
+            PAYMENT_SERVICE_AYA_PAY = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".ayaPay"));
+            PAYMENT_SERVICE_ONE_PAY = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".onePay"));
+            PAYMENT_SERVICE_WAVE_MONEY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".waveMoney_manual"));
+            PAYMENT_SERVICE_KPAY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".kpay_manual"));
+            PAYMENT_SERVICE_OK_DOLLAR_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".okDollar_manual"));
+            PAYMENT_SERVICE_MASTER_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".master_manual"));
+            PAYMENT_SERVICE_VISA_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".visa_manual"));
+            PAYMENT_SERVICE_MYTEL_PAY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".mytelPay_manual"));
+            PAYMENT_SERVICE_SAISAI_PAY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".saisaiPay_manual"));
+            PAYMENT_SERVICE_CB_PAY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".cbPay_manual"));
+            PAYMENT_SERVICE_AYA_PAY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".ayaPay_manual"));
+            PAYMENT_SERVICE_ONE_PAY_MANUAL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_SERVICE + ".onePay_manual"));
+
             PAYMENT_STATUS_CHECK = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_STATUS + ".check"));
             PAYMENT_STATUS_SUCCESS = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_STATUS + ".success"));
             PAYMENT_STATUS_FAIL = int.Parse(xmlRetriever.GetParameter(PARAM_PAYMENT_STATUS + ".fail"));
@@ -383,7 +413,8 @@ namespace MayMayShop.API.Const
             SEARCHTYPE_PROMOTION = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".promotion"));
             SEARCHTYPE_SUB_CATEGORY = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".subCategory"));
             SEARCHTYPE_BEST_SELLER = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".bestSeller"));
-    
-        }
+            AWS_BRAND_BANNER_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandBannerPath");
+            AWS_BRAND_LOGO_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandLogoPath");
+        }   
     }
 }

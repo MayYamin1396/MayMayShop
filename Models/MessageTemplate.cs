@@ -7,10 +7,8 @@ namespace MayMayShop.API.Models
     {
         public int Id { get; set; }
 
-        [StringLength(255)]
-        public string ActionName { get; set; }
         
-        [StringLength(500)]
+        public string ActionName { get; set; }
 
         public string Message { get; set; }
 

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using MayMayShop.API.Dtos.MiscellanceousDto;
+using MayMayShop.API.Dtos.OrderDto;
 
 namespace MayMayShop.API.Dtos.MembershipDto
 {
@@ -9,11 +11,13 @@ namespace MayMayShop.API.Dtos.MembershipDto
         public double NetAmt { get; set; }
         public int TotalPoint { get; set; }
         public int  MyOwnPoint { get; set; }
-        public GetCartDetailForRewardProductInfo ProductInfo { get; set; }
+        public List<GetCartDetailForRewardProductInfo> ProductInfo { get; set; }
 
         public GetCartDetailForRewardDeliveryInfo DeliveryInfo { get; set; }
 
         public List<GetCartDetailForRewardPaymentService> PaymentService { get; set; }
+        public List<GetPaymentServiceForBuyerResponse> NewPaymentService { get; set; }
+        public List<ProductIssues> ProductIssues{get;set;}
     }
 
     public class GetCartDetailForRewardProductInfo

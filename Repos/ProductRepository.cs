@@ -10,6 +10,7 @@ using MayMayShop.API.Context;
 using MayMayShop.API.Controllers;
 using MayMayShop.API.Dtos;
 using MayMayShop.API.Dtos.ProductDto;
+using MayMayShop.API.Helpers;
 using MayMayShop.API.Interfaces.Repos;
 using MayMayShop.API.Interfaces.Services;
 using MayMayShop.API.Models;
@@ -27,13 +28,15 @@ namespace MayMayShop.API.Repos
         private readonly IMapper _mapper;
         private readonly IUserServices _userServices;
         private readonly IMayMayShopServices _MayMayShopServices;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        public ProductRepository(MayMayShopContext context, IMapper mapper,IUserServices userServices,IMayMayShopServices MayMayShopServices)
+        public ProductRepository(MayMayShopContext context, IMapper mapper,IUserServices userServices,IMayMayShopServices MayMayShopServices,IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _mapper = mapper;
             _userServices = userServices;
             _MayMayShopServices=MayMayShopServices;
+            _httpContextAccessor=httpContextAccessor;
         }
         public async Task<TrnProduct> CreateDemoProduct(int productCategoryId)
         {
@@ -50,8 +53,33 @@ namespace MayMayShop.API.Repos
 
             return productToAdd;
         }
+
         public async Task<List<PopulateSkuResponse>> PopulateSku(PopulateSkuRequest req, Guid productId)
         {
+            #region  convert zawgyi to unicode
+
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
+            var newOptionList=new List<Options>();
+
+            foreach(var op in req.Options)
+            {    
+                var newOp=new List<String>();
+                foreach(var val in op.OptionValue)
+                {
+                    var newValue=isZawgyi?Rabbit.Zg2Uni(val):val;
+                    newOp.Add(newValue);
+                }
+                var newOption=new Options(){
+                    VariantId=op.VariantId,
+                    OptionValue=newOp
+                };
+                newOptionList.Add(newOption);
+            }
+            req.Options=newOptionList;
+
+            #endregion
+
             if (req.Options.Count == 2)
             {
                 var trnProductVariantOptions = new List<TrnProductVariantOption>();
@@ -381,33 +409,29 @@ namespace MayMayShop.API.Repos
                 return null;
             }
         }
+
         public async Task<ResponseStatus> CreateProduct(CreateProductRequest req, List<ImageUrlResponse> imageUrlList,int currentLoginID)
         {
             using(var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
+                    bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
                     #region Product
 
                     var trnProduct = await _context.TrnProduct
                                 .Where(x => x.Id == req.ProductId)
                                 .FirstOrDefaultAsync();
 
-                    //just in case
-                    // if(req.BrandId==0)
-                    // {
-                    //     req.BrandId=2;
-                    // }
-
                     var productToAdd = new Product()
                     {
-                        Name = req.Name,
+                        Name = isZawgyi?Rabbit.Zg2Uni(req.Name):req.Name,
                         IsActive = true,
                         CreatedDate = DateTime.Now,
                         CreatedBy = currentLoginID,
                         ProductCategoryId = trnProduct.ProductCategoryId,
-                        Description = req.Description,
-                        BrandId = req.BrandId == 0 ? null : req.BrandId
+                        BrandId = req.BrandId != 0 ? req.BrandId : (int?)null,
+                        Description = isZawgyi?Rabbit.Zg2Uni(req.Description):req.Description
                     };
                     await _context.Product.AddAsync(productToAdd);
                     await _context.SaveChangesAsync();
@@ -476,6 +500,7 @@ namespace MayMayShop.API.Repos
 
                     foreach(var tag in req.TagsList)
                     {
+                        tag.Name=isZawgyi?Rabbit.Zg2Uni(tag.Name):tag.Name;
                         if(tag.Id==0)
                         {
                             Tag t=new Tag(){
@@ -510,7 +535,7 @@ namespace MayMayShop.API.Repos
 
                     ProductClip clip=new ProductClip(){
                         ProductId=productToAdd.Id,
-                        Name=req.ProductClip.Name,
+                        Name= isZawgyi?Rabbit.Zg2Uni(req.ProductClip.Name):req.ProductClip.Name,
                         ClipPath=req.ProductClip.ClipPath,
                         SeqNo=req.ProductClip.SeqNo
                     };
@@ -638,7 +663,7 @@ namespace MayMayShop.API.Repos
                 }
                 catch (Exception e)
                 {
-                    log.Error(string.Format("error => {0}, inner exception => {1} ",e.Message,e.InnerException.Message));
+                    log.Error(e.Message);
                     transaction.Rollback();
                     return new ResponseStatus{
                         StatusCode=StatusCodes.Status500InternalServerError,
@@ -654,21 +679,22 @@ namespace MayMayShop.API.Repos
             {
                 try
                 {
+                    bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
                     #region Product
 
                     var product= await _context.Product.Where(x=>x.Id==req.ProductId).SingleOrDefaultAsync();
-                    product.Name=req.Name;
-                    product.Description=req.Description;
+                    product.Name=isZawgyi?Rabbit.Zg2Uni(req.Name):req.Name;	
+                    product.Description=isZawgyi?Rabbit.Zg2Uni(req.Description):req.Description;
+                    product.BrandId = req.BrandId != 0 ? req.BrandId : (int?)null;
                     product.UpdatedDate=DateTime.Now;
                     product.UpdatedBy=currentLoginID;
-                    product.BrandId = req.BrandId == 0 ? null : req.BrandId;
                     
                     #endregion
 
                     #region Image
 
                     if (imageUrlList.Count > 0)
-                    {     
+                    {   
                         var isMain=true;
                         foreach (var img in imageUrlList.OrderBy(x=>x.SeqNo).ToList())
                         {                   
@@ -802,6 +828,7 @@ namespace MayMayShop.API.Repos
                     // }
                     foreach(var tag in req.TagsList)
                     {
+                        tag.Name=isZawgyi?Rabbit.Zg2Uni(tag.Name):tag.Name;
                         if(tag.Id==0)
                         {
                             Tag t=new Tag(){
@@ -881,9 +908,28 @@ namespace MayMayShop.API.Repos
                     };
                 }
             }
-        }  
+        }
+
         public async Task<AddSkuForUpdateProductResponse> AddSkuForUpdateProduct(AddSkuForUpdateProductRequest request,int currentLoginID)
         {
+            #region  convert zawgyi to unicode
+
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
+            var newVariantList=new List<VariantList>();
+
+            foreach(var va in request.VariantList)
+            {    
+                var newVa=new VariantList(){
+                    VariantId=va.VariantId,
+                    VariantName=isZawgyi?Rabbit.Zg2Uni(va.VariantName):va.VariantName
+                };
+                newVariantList.Add(newVa);
+            }
+            request.VariantList=newVariantList;
+
+            #endregion
+
             var trnProductVariantOptions = new List<ProductVariantOption>();
             var productSkuList = new List<ProductSku>();
             var productSkuValues = new List<ProductSkuValue>();
@@ -2066,8 +2112,7 @@ namespace MayMayShop.API.Repos
                 }
             }
             return response;
-        }
-
+        }  
         public async Task<ResponseStatus> DeleteSku(DeleteSkuRequest request)
         {
             ResponseStatus response = new ResponseStatus();
@@ -2098,14 +2143,17 @@ namespace MayMayShop.API.Repos
         }
         public async Task<GetProductDetailResponse> GetProductDetail(GetProductDetailRequest request,int userId,string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             var product= await _context.Product
                         .Include(x=>x.ProductPrice)                        
                         .Include(x=>x.ProductCategory)
                         .Where(x=>x.Id==request.ProductId)
                         .Select(x=> new GetProductDetailResponse{
                             Id=x.Id,
-                            Name=x.Name,
-                            Description=x.Description,
+                            Name=isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name,	
+                            Description=isZawgyi?Rabbit.Uni2Zg(x.Description):x.Description,	
+                            SharedUrl=MayMayShopConst.COMPANY_SHARED_LINK+x.Id,
                             Price=x.ProductPrice.FirstOrDefault(p=>p.ProductId==request.ProductId).Price,
                             PriceId=x.ProductPrice.FirstOrDefault(p=>p.ProductId==request.ProductId).Id,                           
                             ProductCategoryId=x.ProductCategory.Id
@@ -2118,7 +2166,7 @@ namespace MayMayShop.API.Repos
                                                     .Where(x=>x.Id==category.Id)
                                                     .Select(x=>new GetPrdouctDetailCategoryResponse{
                                                     ProductCategoryId=x.Id,
-                                                    ProductCategoryName=x.Name,
+                                                    ProductCategoryName=isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name,
                                                     Url=x.Url,
                                                     IsMainCategory=false
                                                     }).SingleOrDefaultAsync();
@@ -2126,7 +2174,7 @@ namespace MayMayShop.API.Repos
                                                     .Where(x=>x.Id==category.SubCategoryId)
                                                     .Select(x=>new GetPrdouctDetailCategoryResponse{
                                                     ProductCategoryId=x.Id,
-                                                    ProductCategoryName=x.Name,
+                                                    ProductCategoryName=isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name,
                                                     Url=x.Url,
                                                     IsMainCategory=true
                                                     }).SingleOrDefaultAsync();
@@ -2155,9 +2203,9 @@ namespace MayMayShop.API.Repos
                    product.TagsList=await _context.ProductTag.Include(x=>x.Tag).Where(x=>x.ProductId==request.ProductId)
                                     .Select(x=>new Tag{
                                         Id=x.TagId,
-                                        Name=x.Tag.Name
+                                        Name=isZawgyi?Rabbit.Uni2Zg(x.Tag.Name):x.Tag.Name
                                     }).ToListAsync();
-                   product.ProductImage=await _context.ProductImage.Where(x=>x.ProductId==request.ProductId).ToListAsync();
+                   product.ProductImage=await _context.ProductImage.OrderBy(x=>x.SeqNo).Where(x=>x.ProductId==request.ProductId).ToListAsync();
                    product.ProductClip=await _context.ProductClip.Where(x=>x.ProductId==request.ProductId).SingleOrDefaultAsync();
                    product.ProductPromotion=await _context.ProductPromotion.Where(x=>x.ProductId==request.ProductId).SingleOrDefaultAsync();
 
@@ -2167,7 +2215,7 @@ namespace MayMayShop.API.Repos
                                     .Select(s => new GetProductDetailVariant
                                     {
                                         VariantId = s.Id,
-                                        Name = s.Name
+                                        Name = isZawgyi?Rabbit.Uni2Zg(s.Name):s.Name
                                     }).ToListAsync();
 
                      var productSkuList = await _context.ProductSku.Where(x => x.ProductId == product.Id).ToListAsync();
@@ -2216,7 +2264,7 @@ namespace MayMayShop.API.Repos
                                                         && psku.ProductId == pvopt.ProductId
                                                         && psku.VariantId == pvopt.VariantId
                                                         && psku.ValueId == pvopt.ValueId
-                                                        select pvopt.ValueName).ToListAsync();
+                                                        select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
 
                                     var skuValeForResp = new GetProductDetailSkuValue
                                     {
@@ -2251,14 +2299,14 @@ namespace MayMayShop.API.Repos
         }
          public async Task<List<GetVariantValueResponse>> GetVariantValue(GetVariantValueRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             if (request.SelectedVariantId != 0)
             {
-                var orderList = await (from proVarOpt in _context.ProductVariantOption
-                                       where proVarOpt.ProductId == request.ProductId
-
-                                       group new { proVarOpt } by new { proVarOpt.VariantId }
-                                         into grp
-                                       select grp.Key.VariantId).ToListAsync();
+                    var orderList = await (from proVarOpt in _context.ProductVariantOption
+                                        where proVarOpt.ProductId == request.ProductId
+                                        group new { proVarOpt } by new { proVarOpt.VariantId }
+                                            into grp
+                                        select grp.Key.VariantId).ToListAsync();
 
                 var variantValues = await _context.ProductVariantOption
                     .Where(x => x.ProductId == request.ProductId &&
@@ -2287,7 +2335,7 @@ namespace MayMayShop.API.Repos
                     .Select(s => new GetVariantValueResponse
                     {
                         ValueId = s.ValueId,
-                        ValueName = s.ValueName
+                        ValueName =isZawgyi?Rabbit.Uni2Zg(s.ValueName):s.ValueName
                     }).ToList();
 
                 if (orderList[orderList.Count - 1] == request.CurrentVariantId)
@@ -2296,7 +2344,7 @@ namespace MayMayShop.API.Repos
                         .Select(s => new GetVariantValueResponse
                         {
                             ValueId = s.ValueId,
-                            ValueName = s.ValueName
+                            ValueName =isZawgyi?Rabbit.Uni2Zg(s.ValueName):s.ValueName
                         }).ToList();
 
                     return respWithQty;
@@ -2342,7 +2390,7 @@ namespace MayMayShop.API.Repos
                     .Select(s => new GetVariantValueResponse
                     {
                         ValueId = s.ValueId,
-                        ValueName = s.ValueName
+                        ValueName =isZawgyi?Rabbit.Uni2Zg(s.ValueName):s.ValueName
                     }).ToList();
 
                 if (orderList[orderList.Count - 1] == request.CurrentVariantId)
@@ -2351,7 +2399,7 @@ namespace MayMayShop.API.Repos
                         .Select(s => new GetVariantValueResponse
                         {
                             ValueId = s.ValueId,
-                            ValueName = s.ValueName
+                            ValueName =isZawgyi?Rabbit.Uni2Zg(s.ValueName):s.ValueName
                         }).ToList();
 
                     return respWithQty;
@@ -2363,6 +2411,7 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetLandingProductPromotionResponse>> GetLandingProductPromotion(GetLandingProductPromotionRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -2388,7 +2437,7 @@ namespace MayMayShop.API.Repos
                     .OrderBy(x=>x.ProductPromotion.TotalAmt)
                     .Select(x=>new GetLandingProductPromotionResponse{
                         ProductId=x.Id,
-                        Name=x.Name,
+                        Name=isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name,
                         Url=x.ProductImage.Where(i=>i.ProductId==x.Id).Select(i=>i.Url).FirstOrDefault(),
                         OriginalPrice=x.ProductPrice.Where(i=>i.ProductId==x.Id).Select(i=>i.Price).FirstOrDefault(),
                         PromotePrice=x.ProductPromotion.TotalAmt,
@@ -2399,6 +2448,7 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetLandingProductLatestResponse>> GetLandingProductLatest(GetLandingProductLatestRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             //product id that qty is 0 or less than 0.
            var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -2432,7 +2482,7 @@ namespace MayMayShop.API.Repos
                 var data= new GetLandingProductLatestResponse(){
                     ProductId=p.Id,
                     Url=p.ProductImage.Where(x=>x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
-                    Name=p.Name,
+                    Name=isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                     OriginalPrice=p.ProductPrice.Select(x=>x.Price).SingleOrDefault(),
                     CreatedDate=p.CreatedDate,
                 };
@@ -2456,6 +2506,7 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetProductByRelatedCategryResponse>> GetProductByRelatedCategry(GetProductByRelatedCategryRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -2493,7 +2544,7 @@ namespace MayMayShop.API.Repos
                 var data= new GetProductByRelatedCategryResponse(){
                     ProductId=p.Id,
                     Url=p.ProductImage.Where(x=>x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
-                    Name=p.Name,
+                    Name=isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                     OriginalPrice=p.ProductPrice.Select(x=>x.Price).SingleOrDefault(),                    
                     ProductCategoryId=p.ProductCategoryId,
                 };
@@ -2517,6 +2568,7 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetProductByRelatedTagResponse>> GetProductByRelatedTag(GetProductByRelatedTagRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -2557,7 +2609,7 @@ namespace MayMayShop.API.Repos
                 var data= new GetProductByRelatedTagResponse(){
                     ProductId=p.Id,
                     Url=p.ProductImage.Where(x=>x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
-                    Name=p.Name,
+                    Name=isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                     OriginalPrice=p.ProductPrice.Select(x=>x.Price).SingleOrDefault(),                    
                     TagId=_context.ProductTag.Where(x=>x.ProductId==p.Id).Select(x=>x.TagId).ToArray(),
                 };
@@ -2580,6 +2632,8 @@ namespace MayMayShop.API.Repos
         }
         public async Task<GetLandingProductCategoryResponse> GetLandingProductCategory(GetLandingProductCategoryRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);	
+
             //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -2602,7 +2656,7 @@ namespace MayMayShop.API.Repos
 
             var category= await _context.ProductCategory.Where(x=>x.Id==request.ProductCategoryId).SingleOrDefaultAsync();
             res.MainCategoryId=category.Id;
-            res.MainCategoryName=category.Name;
+            res.MainCategoryName=isZawgyi?Rabbit.Uni2Zg(category.Name):category.Name;
             res.Url=category.Url;
 
             var products= await _context.Product
@@ -2628,10 +2682,10 @@ namespace MayMayShop.API.Repos
             var data= new LandingProductCategory(){
                     ProductId=p.Id,
                     Url=p.ProductImage.Where(x=>x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
-                    Name=p.Name,
+                    Name=isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                     OriginalPrice=p.ProductPrice.Select(x=>x.Price).SingleOrDefault(),
                     SubCategoryId=p.ProductCategoryId,
-                    SubCategoryName=p.ProductCategory.Name                            
+                    SubCategoryName=isZawgyi?Rabbit.Uni2Zg(p.ProductCategory.Name):p.ProductCategory.Name                         
                 };
 
             if (productPromote != null)
@@ -2652,9 +2706,12 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetProductListResponse>> GetProductList(GetProductListRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);	
+            request.SearchText=isZawgyi?Rabbit.Zg2Uni(request.SearchText):request.SearchText;
+
             List<GetProductListResponse> response = new List<GetProductListResponse>();
             var productList=new List<Product>();
-            int totalCount=0;
+            int totalCount=0; 
 
             int[] pTags={};
             if(request.TagIDs!=null && request.TagIDs.Length>0)
@@ -2681,9 +2738,19 @@ namespace MayMayShop.API.Repos
                                 .Where(x=>x.TotalQty>=request.Count)
                                 .Select(x=>x.ProductId)
                                 .ToArrayAsync();
-                 if(pQty.Count()==0)
+                if(pQty.Count()==0)
                 {
                     return null;
+                }
+            }
+            
+            var subCatIds = new List<int>();
+            if (request.ProductCategoryId != 0)
+            {
+                subCatIds = await _context.ProductCategory.Where(x => x.SubCategoryId == request.ProductCategoryId ).Select(x => x.Id).ToListAsync();
+                if (subCatIds.Count <= 0)
+                {
+                    subCatIds = await _context.ProductCategory.Where(x => x.Id == request.ProductCategoryId ).Select(x => x.Id).ToListAsync();
                 }
             }
 
@@ -2692,7 +2759,7 @@ namespace MayMayShop.API.Repos
                 productList= await _context.Product
                             .Where(x => x.IsActive == true
                             && (String.IsNullOrEmpty(request.SearchText) || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id))
                             )
@@ -2702,7 +2769,7 @@ namespace MayMayShop.API.Repos
                 totalCount=await _context.Product
                             .Where(x => x.IsActive == true
                             && (String.IsNullOrEmpty(request.SearchText) || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id))
                             )
@@ -2719,7 +2786,7 @@ namespace MayMayShop.API.Repos
                             && ppIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
@@ -2731,7 +2798,7 @@ namespace MayMayShop.API.Repos
                             && ppIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
@@ -2755,7 +2822,7 @@ namespace MayMayShop.API.Repos
                             && outOfStock.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
@@ -2767,7 +2834,7 @@ namespace MayMayShop.API.Repos
                             && outOfStock.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
@@ -2782,7 +2849,7 @@ namespace MayMayShop.API.Repos
                             && proIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                              && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
@@ -2794,7 +2861,7 @@ namespace MayMayShop.API.Repos
                             && proIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
-                            && (request.ProductCategoryId==0 || x.ProductCategoryId==request.ProductCategoryId)
+                            && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                              && (pTags.Length==0 || pTags.Contains(x.Id))
                             && (pQty.Length==0 || pQty.Contains(x.Id)))
                             .OrderByDescending(y => y.CreatedDate)
@@ -2812,7 +2879,7 @@ namespace MayMayShop.API.Repos
                     GetProductListResponse productListRes = new GetProductListResponse();
                     productListRes.Count = totalCount;
                     productListRes.Id = product.Id;
-                    productListRes.Name = product.Name;
+                    productListRes.Name =isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name;
                     productListRes.Url = await _context.ProductImage.Where(x => x.ProductId == product.Id && x.isMain==true).Select(x => x.Url).SingleOrDefaultAsync();
                     productListRes.OriginalPrice= await _context.ProductPrice
                                                 .Where(x => x.ProductId == product.Id && x.isActive == true)
@@ -2848,7 +2915,7 @@ namespace MayMayShop.API.Repos
                                                  && psku.ProductId == pvopt.ProductId
                                                  && psku.VariantId == pvopt.VariantId
                                                  && psku.ValueId == pvopt.ValueId
-                                                 select pvopt.ValueName).ToListAsync();
+                                                 select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
                             productListRes.Sku += string.Join(",", skuValue) + " ";
                         }
                     }
@@ -2861,19 +2928,24 @@ namespace MayMayShop.API.Repos
                     #region  product reward
                     var productReward=await _context.ProductReward
                                         .Where(x=>x.ProductId==product.Id)
-                                        .SingleOrDefaultAsync();
+                                        .OrderByDescending(x=>x.EndDate)	
+                                        .FirstOrDefaultAsync();
                     if(productReward!=null)
                     {
                         productListRes.RewardAmount=productReward.RewardAmount;
                         productListRes.FixedAmount=productReward.FixedAmount;
                         productListRes.Point=productReward.Point;
                         productListRes.RewardPercent=productReward.RewardPercent;
+                        productListRes.RewardStartDate=productReward.StartDate;	
+                        productListRes.RewardEndDate=productReward.EndDate;
+                        productListRes.ProductRewardId=productReward.Id;
                     }
                     else{
                         productListRes.RewardAmount=0;
                         productListRes.FixedAmount=0;
                         productListRes.Point=0;
                         productListRes.RewardPercent=0;
+                        productListRes.ProductRewardId=0;
                     }
                     #endregion
 
@@ -2923,10 +2995,12 @@ namespace MayMayShop.API.Repos
         }
         public async Task<ProductSearchResponse> ProductSearch(ProductSearchRequest request,int userId,int platform)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             #region  Activity Log
             if(!string.IsNullOrEmpty(request.ProductName))
             {
-                 ActivityLog data=new ActivityLog(){
+                request.ProductName=isZawgyi?Rabbit.Zg2Uni(request.ProductName):request.ProductName;
+                ActivityLog data=new ActivityLog(){
                 UserId=userId,
                 ActivityTypeId=MayMayShopConst.ACTIVITY_TYPE_SEARCH,
                 Value=request.ProductName,
@@ -2944,10 +3018,12 @@ namespace MayMayShop.API.Repos
             {
                 var exitKeyword= await _context.SearchKeyword
                                 .Where(x=>x.Name.ToLower()==key.ToLower())
-                                .SingleOrDefaultAsync();
-                if(exitKeyword==null && !MayMayShopConst.NonKeyword.Contains(key.ToLower()))//new keyword
+                                .FirstOrDefaultAsync();
+                if(exitKeyword==null)//new keyword
                 {
-                    var newKeyword=new SearchKeyword(){
+                    if(!MayMayShopConst.NonKeyword.Contains(key.ToLower()))
+                    {
+                        var newKeyword=new SearchKeyword(){
                         Name=key.ToLower(),
                         CreatedBy=userId,
                         CreatedDate=DateTime.Now
@@ -2962,6 +3038,8 @@ namespace MayMayShop.API.Repos
                     };
                     _context.SearchKeywordTrns.Add(newKeywordTrn);
                     await _context.SaveChangesAsync();
+                    }
+                    
                 }
                 else{
                     var searchTrn=await _context.SearchKeywordTrns
@@ -3014,13 +3092,14 @@ namespace MayMayShop.API.Repos
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name =isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),                                            
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=> x.ThumbnailUrl).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )            
             .ToListAsync();
@@ -3039,13 +3118,14 @@ namespace MayMayShop.API.Repos
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name = isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )
             .ToListAsync();
@@ -3067,13 +3147,14 @@ namespace MayMayShop.API.Repos
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name =isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )
             .ToListAsync();
@@ -3090,13 +3171,14 @@ namespace MayMayShop.API.Repos
                                         orderby p.CreatedDate descending
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name =isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )
             .ToListAsync();
@@ -3117,13 +3199,14 @@ namespace MayMayShop.API.Repos
                                         && (proIDs.Count()==0 || proIDs.Contains(p.Id))                        
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name =isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty),
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )
             .ToListAsync();
@@ -3140,13 +3223,14 @@ namespace MayMayShop.API.Repos
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))        
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name =isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x => x.Qty),
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )
             .ToListAsync();
@@ -3176,13 +3260,14 @@ namespace MayMayShop.API.Repos
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(x.Id)))
                                         select new ProductInfo{
                                             Id = p.Id,
-                                            Name = p.Name,
+                                            Name =isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                             OriginalPrice = _context.ProductPrice.Where(x => x.ProductId == p.Id && x.isActive == true).Select(x => x.Price).FirstOrDefault(),
                                             PromotePrice = _context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.TotalAmt).FirstOrDefault(),
                                             PromotePercent=_context.ProductPromotion.Where(x => x.ProductId == p.Id).Select(x => x.Percent).FirstOrDefault(),
                                             CreatedDate = p.CreatedDate,
                                             OrderCount = _context.OrderDetail.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty),
-                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault()
+                                            Url = _context.ProductImage.Where(x => x.ProductId==p.Id && x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
+                                            Qty = _context.ProductSku.Where(x=>x.ProductId==p.Id).Sum(x=>x.Qty)
                                         })
             )
             .ToListAsync();
@@ -3243,12 +3328,13 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetVariantByCategoryResponse>> GetVariantByCategoryId(int categoryId)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
 
             List<GetVariantByCategoryResponse> variants = await _context.Variant
                                                                 .Where(x => x.ProductCategoryId == categoryId && x.IsDeleted == false)
                                                                 .Select(x => new GetVariantByCategoryResponse{
                                                                     Id = x.Id,
-                                                                    Name = x.Name
+                                                                    Name =isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name
                                                                 } ) .ToListAsync();
             return variants;
         }
@@ -3265,6 +3351,7 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetProductSkuResponse>> GetProductSku(GetProductSkuRequest req)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             var resp = new List<GetProductSkuResponse>();
             var skuList = await((
                                 from psku   in _context.TrnProductSku
@@ -3275,7 +3362,7 @@ namespace MayMayShop.API.Repos
                                 select new GetProductSkuResponse{
                                     ProductId = psku.ProductId,
                                     SkuId = psku.SkuId,
-                                    VariantOptions =vari.ValueName,
+                                    VariantOptions =isZawgyi?Rabbit.Uni2Zg(vari.ValueName):vari.ValueName,
                                     Qty = psku.Qty
                                 }
             ).Distinct()
@@ -3289,11 +3376,12 @@ namespace MayMayShop.API.Repos
         }
         public async Task<GetProductVariantResponse> GetProductVariant(GetProductSkuRequest req)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
             var resp = new GetProductVariantResponse();
             var variants = await _context.TrnProductVariantOption
                             .Where(x => x.ProductId == req.ProductId)
                             .Select(x => new ValueList {
-                                ValueName = x.ValueName,
+                                ValueName =isZawgyi?Rabbit.Uni2Zg(x.ValueName):x.ValueName,
                                 ValueId = x.ValueId,
                                 VariantId = x.VariantId
                             }).ToListAsync();
@@ -3306,7 +3394,7 @@ namespace MayMayShop.API.Repos
                     var valueList = await _context.TrnProductVariantOption
                             .Where(x => x.ProductId == req.ProductId && x.VariantId == variants[i].VariantId)
                             .Select(x => new ValueList {
-                                ValueName = x.ValueName,
+                                ValueName =isZawgyi?Rabbit.Uni2Zg(x.ValueName):x.ValueName,
                                 ValueId = x.ValueId,
                                 VariantId = x.VariantId
                             }).ToListAsync();
@@ -3329,6 +3417,8 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetProductNameSuggestionResponse>> GetProductNameSuggestion(GetProductNameSuggestionRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);	
+            request.SearchText=isZawgyi?Rabbit.Zg2Uni(request.SearchText):request.SearchText;
              //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -3346,7 +3436,7 @@ namespace MayMayShop.API.Repos
                                                     .OrderByDescending(x =>x.Name.StartsWith(request.SearchText))
                                                     .Select(x => new GetProductNameSuggestionResponse{
                                                         ImageUrl =  _context.ProductImage.Where(p=> p.ProductId == x.Id && p.isMain == true).Select(p => p.ThumbnailUrl).FirstOrDefault(),
-                                                        Name = x.Name
+                                                        Name =isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name
                                                     })
                                                     .Skip((request.PageNumber-1)).Take(request.PageSize).ToListAsync();
 
@@ -3354,6 +3444,8 @@ namespace MayMayShop.API.Repos
         }
         public async Task<List<GetBestSellingProductResponse>> GetBestSellingProduct(GetBestSellingProductRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             var fromDate=DateTime.Today.AddDays(-MayMayShopConst.BEST_SELLER_DURATION);
             var toDate=DateTime.Now;
 
@@ -3393,7 +3485,7 @@ namespace MayMayShop.API.Repos
                 foreach (var product in productList)
                 {
                     GetBestSellingProductResponse orderListProduct = new GetBestSellingProductResponse();
-                    orderListProduct.Name = product.Name;
+                    orderListProduct.Name =isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name;
                     orderListProduct.OrderCount = _context.OrderDetail.Where(x=>x.ProductId==product.Id && productListIDS.Contains(x.ProductId)).Count();                   
                     orderListProduct.Id = product.Id;
                     var productImage = await _context.ProductImage.Where(x => x.ProductId == product.Id && x.isMain == true).FirstOrDefaultAsync();
@@ -3635,6 +3727,8 @@ namespace MayMayShop.API.Repos
         }
         public async Task<GetAllProductListBuyerResponse> GetAllProductListBuyer(GetAllProductListBuyerRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             //product id that qty is 0 or less than 0.
             var productSkuIDs=await (from sku in _context.ProductSku
                                 group sku by sku.ProductId into newSku
@@ -3652,7 +3746,7 @@ namespace MayMayShop.API.Repos
                         .Where(x=>x.IsDeleted!=true && (x.SubCategoryId==0 || string.IsNullOrEmpty(x.SubCategoryId.ToString())))
                         .Select(x=> new GetAllProductListMainCategoryBuyer
                         {Id=x.Id,
-                        Name=x.Name,
+                        Name=isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name,
                         Url=x.Url,
                         })
                         .ToListAsync();
@@ -3672,7 +3766,7 @@ namespace MayMayShop.API.Repos
                             .Select(p=>new GetAllProductListBuyer{
                                 ProductId=p.Id,
                                 Url=_context.ProductImage.Where(img=>img.isMain==true && img.ProductId==p.Id).Select(img=>img.Url).SingleOrDefault(),
-                                Name=p.Name,
+                                Name=isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                 OriginalPrice=_context.ProductPrice.Where(oPrice=>oPrice.ProductId==p.Id).Select(oPrice=>oPrice.Price).SingleOrDefault(),
                                 PromotePrice=_context.ProductPromotion
                                                 .Where(pPrice => pPrice.ProductId == p.Id)
@@ -3701,9 +3795,7 @@ namespace MayMayShop.API.Repos
                     .Where(x=>x.ProductId==productId)
                     .ToListAsync();
         }
-
         //------------------------Brand-----------------------//
-
         public async Task<GetProductByBrandResponse> GetProductByBrand(GetProductByBrandRequest request)
         {
             //product id that qty is 0 or less than 0.
@@ -3717,7 +3809,6 @@ namespace MayMayShop.API.Repos
                                 .Where(x=>x.TotalQty<=0)
                                 .Select(x=>x.ProductId)
                                 .ToArrayAsync();
-
             GetProductByBrandResponse resp = new GetProductByBrandResponse();
             var brand = await _context.Brand.Where(x =>x.Id == request.BrandId).SingleOrDefaultAsync();
             if (brand != null)
@@ -3726,7 +3817,6 @@ namespace MayMayShop.API.Repos
                 resp.BrandName = brand.Name;
                 resp.Url = brand.Url;
             }
-
             var products= await _context.Product
                         .Include(x=>x.ProductImage)
                         .Include(x=>x.ProductPrice)
@@ -3745,7 +3835,6 @@ namespace MayMayShop.API.Repos
                 var productPromote = await _context.ProductPromotion
                                                 .Where(x => x.ProductId == p.Id)
                                                 .FirstOrDefaultAsync();
-
                 var data= new BrandProduct(){
                     ProductId=p.Id,
                     Url=p.ProductImage.Where(x=>x.isMain==true).Select(x=>x.Url).SingleOrDefault(),
@@ -3753,7 +3842,6 @@ namespace MayMayShop.API.Repos
                     OriginalPrice=p.ProductPrice.Select(x=>x.Price).SingleOrDefault(),
                     CreatedDate=p.CreatedDate,
                 };
-
                 if (productPromote != null)
                 {
                     data.PromotePrice = productPromote.TotalAmt;
@@ -3764,10 +3852,8 @@ namespace MayMayShop.API.Repos
                     data.PromotePrice = 0;
                     data.PromotePercent = 0;
                 }
-
                 productList.Add(data);
             }
-
             resp.Products = productList;
             return resp;
         }

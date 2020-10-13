@@ -99,6 +99,7 @@ namespace MayMayShop.API.Context
         public virtual DbSet<Platform> Platform {get;set;}
         public virtual DbSet<SearchKeyword> SearchKeyword {get;set;}
         public virtual DbSet<SearchKeywordTrns> SearchKeywordTrns {get;set;}
+        public virtual DbSet<ProductRewardHistory> ProductRewardHistory {get;set;}
 
         //new table
         public virtual DbSet<Brand> Brand {get;set;}

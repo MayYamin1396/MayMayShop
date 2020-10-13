@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MayMayShop.API.Dtos.MiscellanceousDto;
 
 namespace MayMayShop.API.Dtos.OrderDto
 {
@@ -32,6 +33,7 @@ namespace MayMayShop.API.Dtos.OrderDto
 
         public virtual List<GetOrderDeailOrderPaymentInfo> PaymentInfo { get; set; }
         public List<GetCartDetailPaymentService> PaymentService { get; set; }
+        public List<GetPaymentServiceForBuyerResponse> NewPaymentService { get; set; }
 
         // public int OrderCount { get; set; }
         
@@ -61,7 +63,7 @@ namespace MayMayShop.API.Dtos.OrderDto
         public double OriginalPrice { get; set; }
 
         public double PromotePrice { get; set; }
-        public int PromotePercent {get;set;}
+        public int? PromotePercent {get;set;}
 
         public int SkuId { get; set; }
 

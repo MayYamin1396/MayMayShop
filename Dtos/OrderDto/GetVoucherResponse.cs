@@ -29,11 +29,12 @@ namespace MayMayShop.API.Dtos.OrderDto
         public int ProductId {get;set;}
         public double OriginalPrice {get;set;}
         public double PromotePrice {get;set;}
-        public int PromotePercent {get;set;}
+        public int? PromotePercent {get;set;}
         public double Price {get;set;}
         public int Qty{get;set;}
         public string Name {get;set;}
         public int SkuId {get;set;}
         public string Sku {get;set;}
+        
     }
 }

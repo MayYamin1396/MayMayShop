@@ -7,13 +7,9 @@ namespace MayMayShop.API.Models
     {
         public int Id { get; set; }
 
-        [StringLength(255)]
         public string ActionName { get; set; }
-
-        [StringLength(255)]
+      
         public string Subject { get; set; }
-
-        [StringLength(700)]
         public string Body { get; set; }
 
         public DateTime CreatedDate { get; set; }

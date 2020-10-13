@@ -17,6 +17,10 @@ namespace MayMayShop.API.Models
         public int Qty { get; set; }
 
         public double Price { get; set; }
+        public double OriginalPrice { get; set; }
+        public double Discount{ get;set;}
+        public int? PromotePercent{get;set;}
+        public double? PromoteFixedPrice{get;set;}
         public int? Point {get;set;}
         public double? FixedAmount {get;set;}
         public int? RewardPercent {get;set;}

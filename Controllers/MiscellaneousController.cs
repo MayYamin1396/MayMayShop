@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Collections.Generic;
+using System.IO;
 
 namespace MayMayShop.API.Controllers
 {
@@ -36,7 +38,6 @@ namespace MayMayShop.API.Controllers
             _services=services;
             _context = context;
         }
-
         [HttpGet("GetCity")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]
@@ -94,9 +95,9 @@ namespace MayMayShop.API.Controllers
         }
 
         [HttpGet("GetSubCategory")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetSubCategory([FromQuery]GetSubCategoryRequest request)
         {
             try
@@ -257,9 +258,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetMainCategoryById")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetMainCategoryById(int productCategoryId)
         {
             try
@@ -332,9 +333,9 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetSubCategoryById")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetSubCategoryById(int productCategoryId)
         {
             try
@@ -407,14 +408,94 @@ namespace MayMayShop.API.Controllers
         }
     
         [HttpGet("GetPolicy")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetPolicy()
         {
             try
             {
                 var response = await _repo.GetPolicy();
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpGet("GetPolicyById")]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetPolicyById(int Id)
+        {
+            try
+            {
+                var response = await _repo.GetPolicyById(Id);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+        
+        [HttpPost("CreatePolicy")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> CreatePolicy(CreatePolicyRequest req)
+        {
+            try
+            {
+                var currentLoginID = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                var response= await _repo.CreatePolicy(req, currentLoginID);
+
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("UpdatePolicy")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> UpdatePolicy(UpdatePolicyRequest req)
+        {
+            try
+            {
+                var currentLoginID = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                var response= await _repo.UpdatePolicy(req, currentLoginID);
+
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("DeletePolicy")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> DeletePolicy(int id)
+        {
+            try
+            {
+                
+                var response= await _repo.DeletePolicy(id);
+
                 return Ok(response);
             }
             catch (Exception e)
@@ -498,8 +579,6 @@ namespace MayMayShop.API.Controllers
             }
         }
         
-
-        
         [HttpPost("UpdateBanner")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]
@@ -568,9 +647,9 @@ namespace MayMayShop.API.Controllers
         }
         
         [HttpGet("GetBannerById")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBannerById(int id)
         {
             try
@@ -602,9 +681,9 @@ namespace MayMayShop.API.Controllers
             }
         }
         [HttpGet("GetBannerLink")]
-        [Authorize]
-        [ServiceFilter(typeof(ActionActivity))]
-        [ServiceFilter(typeof(ActionActivityLog))]
+        // [Authorize]
+        // [ServiceFilter(typeof(ActionActivity))]
+        // [ServiceFilter(typeof(ActionActivityLog))]
         public async Task<IActionResult> GetBannerLink()
         {
             try
@@ -636,7 +715,7 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
-
+        
         #region Activity Log API
         [HttpGet("GetLastActiveByUserId")]
         [Authorize]
@@ -658,7 +737,189 @@ namespace MayMayShop.API.Controllers
 
         #endregion
 
+        #region Payment service
+       
+        [HttpGet("GetPaymentServiceForSeller")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetPaymentServiceForSeller()
+        {
+            try
+            {
+                var response = await _repo.GetPaymentServiceForSeller();
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpGet("GetPaymentServiceDetail")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetPaymentServiceDetail(int paymentServiceId)
+        {
+            try
+            {
+                var response = await _repo.GetPaymentServiceDetail(paymentServiceId);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("UpdatePaymentService")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> UpdatePaymentService(UpdatePaymentServiceRequest request)
+        {
+            try
+            {
+                var response = await _repo.UpdatePaymentService(request);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+        
+        [HttpGet("GetBankListForSeller")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetBankListForSeller()
+        {
+            try
+            {
+                var response = await _repo.GetBankListForSeller();
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpGet("GetBankDetail")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetBankDetail(int id)
+        {
+            try
+            {
+                var response = await _repo.GetBankDetail(id);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        [HttpPost("UpdateBank")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> UpdateBank(UpdateBankRequest request)
+        {
+            try
+            {
+                var response = await _repo.UpdateBank(request);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+       
+
+        #endregion
+        
+        #region Category Icon
+        [HttpPost("CreateCategoryIcon")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> CreateCategoryIcon([FromForm]CreateCategoryIconRequest request)
+        {
+            try
+            {  
+                if (Request.Form.Files != null && Request.Form.Files.Count > 0)
+                {
+                    var imgList = new List<ImageUrlResponse>();
+                    foreach (IFormFile file in Request.Form.Files)
+                    {
+                        ImageUrlResponse imageUrlRes = new ImageUrlResponse();
+                        using (var ms = new MemoryStream())
+                        {
+                        file.CopyTo(ms);
+                        var fileBytes = ms.ToArray();
+                        string imgStr = Convert.ToBase64String(fileBytes);
+                        
+                        ImageUrlResponse img  =new ImageUrlResponse(); 
+                        img =(await _services.UploadToS3(imgStr,"png", "category"));   
+                        imgList.Add(img);
+                        }
+                    }
+                    var oldIcon=await _repo.GetCategoryIcon();
+                    foreach(var image in oldIcon)
+                    {
+                        await _services.DeleteFromS3(image.Url,image.Url);                         
+                    }   
+
+                    var response = await _repo.CreateCategoryIcon(request,imgList);
+                    return Ok(response);
+
+                }
+
+                else{
+                    return StatusCode(StatusCodes.Status500InternalServerError,"File not found!");
+                }
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
+        #endregion
+
+        [HttpPost("GetPaymentServiceForBuyer")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetPaymentServiceForBuyer()
+        {
+        
+            try
+            {
+                var response = await _repo.GetPaymentServiceForBuyer();
+
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+
         //Brand 
+
         [HttpPost("AddBrand")]
         public async Task<IActionResult> AddBrand(AddBrandRequest request)
         {

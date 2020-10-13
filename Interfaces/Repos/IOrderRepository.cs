@@ -1,10 +1,8 @@
-
-
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MayMayShop.API.Dtos.OrderDto;
 using MayMayShop.API.Dtos;
-
+using MayMayShop.API.Dtos.GatewayDto;
 
 namespace MayMayShop.API.Interfaces.Repos
 {
@@ -19,16 +17,15 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<PostOrderResponse> PostOrder(PostOrderRequest req, int userId,string token,int platform);
         Task<ResponseStatus> PostOrderActivity(int orderId, int userId,string token,int platform);
         Task<PostOrderByKBZPayResponse> PostOrderByKBZPay(PostOrderRequest req,int userId, string token);
-        Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req,int userId, string token);
         Task<PostOrderResponse> CheckKPayStatus(string transactionId,int userId,string token,int platform);
-
+        Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req,int userId, string token);
         Task<PostOrderResponse> CheckWaveTransactionStatus (CheckWaveTransactionStatusRequest request,int platform);
         Task <ResponseStatus> UpdateProductCart(UpdateProductCartRequest request, int userId);
         Task<List<GetOrderHistoryResponse>> GetOrderHistory(GetOrderHistoryRequest request);
-         Task<List<GetOrderHistoryResponse>> GetOrderHistorySeller(GetOrderHistorySellerRequest request);
-         Task<List<GetNotificationResponse>> GetNotificationBuyer(GetNotificationRequest request,int userId,string token);
-         Task<List<GetNotificationResponse>> GetNotificationSeller(GetNotificationRequest request,int userId,string token);
-         Task<ResponseStatus> SeenNotification(SeenNotificationRequest request,int userId);
+        Task<List<GetOrderHistoryResponse>> GetOrderHistorySeller(GetOrderHistorySellerRequest request);
+        Task<List<GetNotificationResponse>> GetNotificationBuyer(GetNotificationRequest request,int userId,string token);
+        Task<List<GetNotificationResponse>> GetNotificationSeller(GetNotificationRequest request,int userId,string token);
+        Task<ResponseStatus> SeenNotification(SeenNotificationRequest request,int userId);
         Task<List<GetOrderListByProductResponse>> GetOrderListByProduct(GetOrderListByProductRequest request);
         Task<GetOrderListByProductIdResponse> GetOrderListByProductId(GetOrderListByProductIdRequest request);
         Task<ResponseStatus> UpdateOrderStatus(UpdateOrderStatusRequest request, int currentUserLogin,int platform);
@@ -44,8 +41,7 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<List<string>> GetVoucherNoSuggestionSeller(GetVoucherNoSuggestionSellerRequest request);    
         Task<GetVoucherResponse> GetVoucher(int OrderId,string token);  
         Task<GetPOSVoucherResponse> GetPOSVoucher(int OrderId,int userId,string token);
-        Task<bool> CallBackKPayNotify(string transactionId);      
-
-        Task<GetOrderDetailResponse>GetOrderDetailByTransactionId(string transactionId,string token);   
+        Task<bool> CallBackKPayNotify(KBZNotifyRequest request);   
+        
     }
 }

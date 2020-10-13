@@ -23,7 +23,7 @@ namespace MayMayShop.API.Repos
 {
     public class OrderRepository : IOrderRepository
     {
-       private readonly MayMayShopContext _context;
+        private readonly MayMayShopContext _context;
 
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -36,13 +36,17 @@ namespace MayMayShop.API.Repos
 
         private readonly IMayMayShopServices _services;
         
+        private readonly IMiscellaneousRepository _miscellaneousRepo;
         private readonly IMemberPointRepository _memberPointRepo;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public OrderRepository(MayMayShopContext context, IMapper mapper
             , IUserServices userServices, IMayMayShopServices service, 
             IPaymentGatewayServices paymentservices,
             IDeliveryService deliService,
-            IMemberPointRepository memberPointRepo)
+            IMiscellaneousRepository miscellaneousRepo,
+            IMemberPointRepository memberPointRepo,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _mapper = mapper;
@@ -50,12 +54,13 @@ namespace MayMayShop.API.Repos
             _services = service;
             _paymentservices = paymentservices;
             _deliServices= deliService;
+            _miscellaneousRepo=miscellaneousRepo;
             _memberPointRepo=memberPointRepo;
+            _httpContextAccessor=httpContextAccessor;
         }
 
         public async Task<ResponseStatus> AddToCart(AddToCartRequest request, int userId,int platform)
-        {
-
+        {            
             int qtyInHand = await _context.ProductSku
                         .Where(x => x.ProductId == request.ProductId && x.SkuId == request.SkuId)
                         .Select(s => s.Qty)
@@ -171,6 +176,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<GetCartDetailResponse> GetCartDetail(int userId, string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             var response = new GetCartDetailResponse(){
                 StatusCode=StatusCodes.Status200OK
             };
@@ -189,7 +196,7 @@ namespace MayMayShop.API.Repos
                     ProductUrl = _context.ProductImage.Where(x => x.ProductId == s.ProductId && x.isMain == true)
                             .Select(s => s.Url).FirstOrDefault(),
                     Qty = s.Qty,
-                    Name = _context.Product.Where(x => x.Id == s.ProductId).Select(s => s.Name)
+                    Name = _context.Product.Where(x => x.Id == s.ProductId).Select(s =>isZawgyi?Rabbit.Uni2Zg(s.Name):s.Name)
                             .FirstOrDefault(),
                     Variation = null,
                     AvailableQty = _context.ProductSku.Where(x => x.ProductId == s.ProductId &&
@@ -206,7 +213,7 @@ namespace MayMayShop.API.Repos
                                       && psku.ProductId == pvopt.ProductId
                                       && psku.VariantId == pvopt.VariantId
                                       && psku.ValueId == pvopt.ValueId
-                                      select pvopt.ValueName).ToListAsync();
+                                      select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
 
                 item.Variation = string.Join(",", skuValue);
 
@@ -235,8 +242,11 @@ namespace MayMayShop.API.Repos
                                     {
                                         Id = s.Id,
                                         ImgUrl = s.ImgPath,
-                                        Name = s.Name
+                                        Name =isZawgyi?Rabbit.Uni2Zg(s.Name):s.Name
                                     }).ToListAsync();                    
+            
+            response.NewPaymentService=await _miscellaneousRepo.GetPaymentServiceForBuyer();
+
             #endregion
 
             #region  Delivery info
@@ -248,6 +258,9 @@ namespace MayMayShop.API.Repos
             {
                 string cityName=await _deliServices.GetCityName(token,trnCartDeliInfo.CityId);
                 string townshipName=await _deliServices.GetTownshipName(token,trnCartDeliInfo.TownshipId);
+                
+                cityName=isZawgyi?Rabbit.Uni2Zg(cityName):cityName;
+                townshipName=isZawgyi?Rabbit.Uni2Zg(townshipName):townshipName;
 
                 // var latestCartInfoUpdatedDate = await _context.TrnCart
                 //                                 .Where(x => x.UserId == userId)
@@ -271,16 +284,16 @@ namespace MayMayShop.API.Repos
                 cartDetailDeliveryInfo.CityId = trnCartDeliInfo.CityId;
                 cartDetailDeliveryInfo.TownshipId = trnCartDeliInfo.TownshipId;
                 cartDetailDeliveryInfo.AreaInfo = townshipName + " ၊ " +cityName;
-                cartDetailDeliveryInfo.Address = trnCartDeliInfo.Address==null?" ":trnCartDeliInfo.Address;
+                cartDetailDeliveryInfo.Address = trnCartDeliInfo.Address==null?" ":(isZawgyi?Rabbit.Uni2Zg(trnCartDeliInfo.Address):trnCartDeliInfo.Address);
                 cartDetailDeliveryInfo.DeliveryAmt = trnCartDeliInfo.DeliveryAmt;
                 cartDetailDeliveryInfo.DeliveryServiceId = trnCartDeliInfo.DeliveryServiceId;
                 cartDetailDeliveryInfo.FromEstDeliveryDay = trnCartDeliInfo.FromEstDeliveryDay;
                 cartDetailDeliveryInfo.ToEstDeliveryDay = trnCartDeliInfo.ToEstDeliveryDay;
-                cartDetailDeliveryInfo.CityName = await _deliServices.GetCityName(token,trnCartDeliInfo.CityId);
-                cartDetailDeliveryInfo.TownshipName = await _deliServices.GetTownshipName(token,trnCartDeliInfo.TownshipId);
-                cartDetailDeliveryInfo.Name = trnCartDeliInfo.Name;
+                cartDetailDeliveryInfo.CityName = cityName;
+                cartDetailDeliveryInfo.TownshipName = townshipName;
+                cartDetailDeliveryInfo.Name =isZawgyi?Rabbit.Uni2Zg(trnCartDeliInfo.Name):trnCartDeliInfo.Name;
                 cartDetailDeliveryInfo.PhoNo = trnCartDeliInfo.PhNo;
-                cartDetailDeliveryInfo.Remark = trnCartDeliInfo.Remark;
+                cartDetailDeliveryInfo.Remark =isZawgyi?Rabbit.Uni2Zg(trnCartDeliInfo.Remark): trnCartDeliInfo.Remark;
                 if (trnCartDeliInfo.DeliveryDate != DateTime.MinValue)
                 {
                     cartDetailDeliveryInfo.DeliveryDate = trnCartDeliInfo.DeliveryDate.Date.ToString("dd MMM yyyy") + "(" + trnCartDeliInfo.DeliveryFromTime + " - " + trnCartDeliInfo.DeliveryToTime + ")";
@@ -300,6 +313,9 @@ namespace MayMayShop.API.Repos
                 string cityName=await _deliServices.GetCityName(token,userInfo.CityId);
                 string townshipName=await _deliServices.GetTownshipName(token,userInfo.TownshipId);
 
+                cityName=isZawgyi?Rabbit.Uni2Zg(cityName):cityName;
+                townshipName=isZawgyi?Rabbit.Uni2Zg(townshipName):townshipName;
+
                 #region GetDeliveryServiceRate
                 var deliveryRate= await _deliServices.GetDeliveryServiceRate(MayMayShopConst.CUSTOM_DELIVERY_SERVICE_ID,
                                 int.Parse(userInfo.CityId.ToString()),
@@ -312,9 +328,9 @@ namespace MayMayShop.API.Repos
                     CityId = userInfo.CityId,
                     TownshipId = userInfo.TownshipId,
                     AreaInfo =  townshipName + " ၊ " +cityName,
-                    CityName =  _deliServices.GetCityName(token,userInfo.CityId).Result,
-                    TownshipName =  _deliServices.GetTownshipName(token,userInfo.TownshipId).Result,
-                    Address = String.IsNullOrEmpty(userInfo.Address)?" ":userInfo.Address,
+                    CityName =  cityName,
+                    TownshipName =  townshipName,
+                    Address = String.IsNullOrEmpty(userInfo.Address)?" ":(isZawgyi?Rabbit.Uni2Zg(userInfo.Address):userInfo.Address),
                     DeliveryAmt = deliveryRate.ServiceAmount,
                     DeliveryServiceId = MayMayShopConst.CUSTOM_DELIVERY_SERVICE_ID,
                     FromEstDeliveryDay = deliveryRate.FromEstDeliveryDay,
@@ -349,12 +365,54 @@ namespace MayMayShop.API.Repos
                     response.NetAmt = response.TotalAmt + response.DeliveryInfo.DeliveryAmt;
             #endregion
 
+            #region Check qty before order
+
+            var issueList=new List<ProductIssues>();
+            foreach (var item in response.ProductInfo)
+            {
+                var product=await _context.Product.Where(x=>x.Id==item.ProductId).SingleOrDefaultAsync();
+                var skuProductQty = await _context.ProductSku.Where(x => x.ProductId == item.ProductId && x.SkuId == item.SkuId).FirstOrDefaultAsync();
+                if(!product.IsActive)
+                {
+                        var issue=new ProductIssues(){
+                            ProductId=item.ProductId,
+                            ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
+                            Action="Delete",
+                            Qty=skuProductQty.Qty,
+                            Reason=string.Format("Your order item - {0} has been deleted by seller.",product.Name)
+                        };
+                        issueList.Add(issue);
+                }
+                
+                else if (skuProductQty != null)
+                {
+                    if(item.Qty>skuProductQty.Qty){//Check if add to cart qty > stock qty. Can't make order
+                        
+                        var issue=new ProductIssues(){
+                            ProductId=item.ProductId,
+                            ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
+                                Action="OutOfStock",
+                            Qty=skuProductQty.Qty,
+                            Reason=string.Format("You'er order {0} of {1}, but we only have {2} left.",(item.Qty>1?item.Qty+" quantities" : item.Qty+" quantity" ),(product.Name),(skuProductQty.Qty>1?skuProductQty.Qty+" quantities" : skuProductQty.Qty+" quantity" ))
+                        };
+                        issueList.Add(issue);                                
+                    }            
+                }                         
+            }
+            if(issueList.Count()>0)
+            {              
+                response.ProductIssues=issueList;
+            }  
+            #endregion
+
             return response;
            
         }
     
         public async Task<ResponseStatus> UpdateDeliveryInfo(UpdateDeliveryInfoRequest request, int userId, string token)
         { 
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
              foreach (var trnCart in request.ProductCarts)
             {
                 var trnCartRes = await _context.TrnCart.Where(x => x.UserId == request.UserId && x.SkuId == trnCart.SkuId && x.ProductId == trnCart.ProductId).FirstOrDefaultAsync();
@@ -386,7 +444,7 @@ namespace MayMayShop.API.Repos
                    AreaInfo = townshipName + " ၊ " + cityName,
                    CityName = cityName,
                    TownshipName = townshipName,
-                   Address = request.Address,
+                   Address =isZawgyi?Rabbit.Zg2Uni(request.Address):request.Address,
                    DeliveryAmt = deliveryServiceRate.ServiceAmount,
                    DeliveryServiceId = MayMayShopConst.CUSTOM_DELIVERY_SERVICE_ID,
                    FromEstDeliveryDay = deliveryServiceRate.FromEstDeliveryDay,
@@ -394,7 +452,7 @@ namespace MayMayShop.API.Repos
                    UserId = userId,
                    Name = userInfo.Name,
                    PhoNo = userInfo.PhoneNo,
-                   Remark = request.Remark,
+                   Remark =isZawgyi?Rabbit.Zg2Uni(request.Remark):request.Remark,
                    DeliveryDate = String.Empty
                };   
              
@@ -615,22 +673,50 @@ namespace MayMayShop.API.Repos
             {
                 try
                 {
+                    bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
                     #region Check qty before order
+
+                    var issueList=new List<ProductIssues>();
                     PostOrderResponse response = new PostOrderResponse();
                     foreach (var item in req.ProductInfo)
                     {
+                        var product=await _context.Product.Where(x=>x.Id==item.ProductId).SingleOrDefaultAsync();
                         var skuProductQty = await _context.ProductSku.Where(x => x.ProductId == item.ProductId && x.SkuId == item.SkuId).FirstOrDefaultAsync();
-                        if (skuProductQty != null)
+                        if(!product.IsActive)
+                        {
+                             var issue=new ProductIssues(){
+                                    ProductId=item.ProductId,
+                                    ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
+                                    Action="Delete",
+                                    Qty=skuProductQty.Qty,
+                                    Reason=string.Format("Your order item - {0} has been deleted by seller.",product.Name)
+                                };
+                                issueList.Add(issue);
+                        }
+                        
+                        else if (skuProductQty != null)
                         {
                             if(item.Qty>skuProductQty.Qty){//Check if add to cart qty > stock qty. Can't make order
-
-                                response.OrderId = 0;
-                                response.StatusCode=StatusCodes.Status400BadRequest;
-                                response.Message="Some items are out of stock!";
-                                return response;
-                            }                  
-                        }
+                               
+                                var issue=new ProductIssues(){
+                                    ProductId=item.ProductId,
+                                    ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
+                                     Action="OutOfStock",
+                                    Qty=skuProductQty.Qty,
+                                    Reason=string.Format("You'er order {0} of {1}, but we only have {2} left.",(item.Qty>1?item.Qty+" quantities" : item.Qty+" quantity" ),(product.Name),(skuProductQty.Qty>1?skuProductQty.Qty+" quantities" : skuProductQty.Qty+" quantity" ))
+                                };
+                                issueList.Add(issue);                                
+                            }            
+                        }                         
                     }
+                    if(issueList.Count()>0)
+                    {
+                        response.OrderId = 0;
+                        response.StatusCode=StatusCodes.Status400BadRequest;
+                        response.ProductIssues=issueList;
+                        return response;
+                    }  
 
                     #endregion
                     
@@ -702,13 +788,41 @@ namespace MayMayShop.API.Repos
                         //     catePM.TotalAmount+=item.Price * item.Qty;
                         // }
 
+                        var productSku=await _context.ProductSku
+                        .Where(x=>x.ProductId==item.ProductId
+                        && x.SkuId==item.SkuId)
+                        .SingleOrDefaultAsync();
+                        
+                        #region GetPromotion
+                        var productPromote=_context.ProductPromotion.Where(x=>x.ProductId==item.ProductId).FirstOrDefault();
+                        
+                        double productPrice=0;
+                        double productDiscount=0;
+                        int promotePercent=0;
+                        if(productPromote!=null && productPromote.Percent>0)
+                        {
+                            double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)productSku.Price).ToString("0.00"));
+                            productPrice=item.Price-discountPrice;
+                            productDiscount=discountPrice;
+                            promotePercent=productPromote.Percent;
+                        }
+                        else{
+                            productPrice=productSku.Price;
+                        }
+                                        
+                        #endregion
+
                         var orderDetailToAdd = new OrderDetail
                         {
                             OrderId = orderToAdd.Id,
                             ProductId = item.ProductId,
                             SkuId = item.SkuId,
                             Qty = item.Qty,
-                            Price = item.Price
+                            Price = productPrice,
+                            OriginalPrice=productSku.Price,
+                            Discount=productDiscount,
+                            PromotePercent=promotePercent,
+                            PromoteFixedPrice=0,
                         };
                         var skuProductQty = await _context.ProductSku.Where(x => x.ProductId == item.ProductId && x.SkuId == item.SkuId).FirstOrDefaultAsync();
                         if (skuProductQty != null)
@@ -737,11 +851,11 @@ namespace MayMayShop.API.Repos
                     var orderDeliveryInfoToAdd = new OrderDeliveryInfo
                     {
                         OrderId = orderToAdd.Id,
-                        Name = req.DeliveryInfo.Name,
+                        Name =isZawgyi?Rabbit.Zg2Uni(req.DeliveryInfo.Name):req.DeliveryInfo.Name,
                         DeliveryServiceId = req.DeliveryInfo.DeliverServiceId,
-                        Address = req.DeliveryInfo.Address,
+                        Address =isZawgyi?Rabbit.Zg2Uni(req.DeliveryInfo.Address):req.DeliveryInfo.Address,
                         PhNo = req.DeliveryInfo.PhoNo,
-                        Remark = req.DeliveryInfo.Remark,
+                        Remark =isZawgyi?Rabbit.Zg2Uni(req.DeliveryInfo.Remark):req.DeliveryInfo.Remark,
                         CityId = req.DeliveryInfo.CityId,
                         TownshipId = req.DeliveryInfo.TownshipId,
                         DeliveryDate = req.DeliveryInfo.DeliveryDate,
@@ -777,44 +891,63 @@ namespace MayMayShop.API.Repos
                             path = res.ImgPath;
                         }
 
+                        var orderPaymentInfoToAdd = new OrderPaymentInfo
+                        {
+                            OrderId = orderToAdd.Id,
+                            PaymentServiceId = req.PaymentInfo.PaymentServiceId,
+                            TransactionDate = DateTime.Now,
+                            PhoneNo = req.PaymentInfo.PhoNo,
+                            Remark =isZawgyi?Rabbit.Zg2Uni(req.PaymentInfo.Remark):req.PaymentInfo.Remark,
+                            ApprovalImgUrl = path,
+                            PaymentStatusId = 0
+                        };
+
+                        // if payment is bank
+                        if(req.PaymentInfo.PaymentServiceId==MayMayShopConst.PAYMENT_SERVICE_BANK)  //if pay by bank, we will add bankID in payment service info
+                        {
+                            orderPaymentInfoToAdd.BankId=req.PaymentInfo.BankId;
+                            orderPaymentInfoToAdd.PaymentStatusId=MayMayShopConst.PAYMENT_STATUS_CHECK;
+                        }
+
                         //if payment is COD
-                        if (req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_COD)
+                        else if (req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_COD)
                         {
-                            var orderPaymentInfoToAdd = new OrderPaymentInfo
-                            {
-                                OrderId = orderToAdd.Id,
-                                PaymentServiceId = req.PaymentInfo.PaymentServiceId,
-                                TransactionDate = DateTime.Now,
-                                PhoneNo = req.PaymentInfo.PhoNo,
-                                Remark = req.PaymentInfo.Remark,
-                                ApprovalImgUrl = path,
-                                PaymentStatusId = MayMayShopConst.PAYMENT_STATUS_SUCCESS
-                            };
-                            await _context.OrderPaymentInfo.AddAsync(orderPaymentInfoToAdd);
-
+                            orderPaymentInfoToAdd.PaymentStatusId=MayMayShopConst.PAYMENT_STATUS_SUCCESS;                            
+                        }
+                        
+                        //if payment is PaymentGate way
+                        else if (req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_WAVE_MONEY // Wave Money
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_KPAY // KBZPay
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_OK_DOLLAR // OK Dollar
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_MASTER // Master
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_VISA // Visa
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_MYTEL_PAY // My Tel
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_SAISAI_PAY // Sai Sai
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_CB_PAY // CB
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_AYA_PAY // AYA
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_ONE_PAY // ONE Pay                        
+                        )
+                        {
+                            orderPaymentInfoToAdd.PaymentStatusId=MayMayShopConst.PAYMENT_STATUS_SUCCESS;                            
                         }
 
-                        //if payment not COD
-                        else
+                        //if payment is PaySlip
+                        else if(req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_WAVE_MONEY_MANUAL // Wave Money
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_KPAY_MANUAL // KBZPay
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_OK_DOLLAR_MANUAL // OK Dollar
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_MASTER_MANUAL // Master
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_VISA_MANUAL // Visa
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_MYTEL_PAY_MANUAL // My Tel
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_SAISAI_PAY_MANUAL // Sai Sai
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_CB_PAY_MANUAL // CB
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_AYA_PAY_MANUAL // AYA
+                        || req.PaymentInfo.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_ONE_PAY_MANUAL // ONE Pay
+                        )
                         {
-                            var orderPaymentInfoToAdd = new OrderPaymentInfo
-                            {
-                                OrderId = orderToAdd.Id,
-                                PaymentServiceId = req.PaymentInfo.PaymentServiceId,
-                                TransactionDate = DateTime.Now,
-                                PhoneNo = req.PaymentInfo.PhoNo,
-                                Remark = req.PaymentInfo.Remark,
-                                ApprovalImgUrl = path,
-                                PaymentStatusId = MayMayShopConst.PAYMENT_STATUS_CHECK
-                            };
-
-                            if(req.PaymentInfo.PaymentServiceId==MayMayShopConst.PAYMENT_SERVICE_BANK)  //if pay by bank, we will add bankID in payment service info
-                            {
-                                orderPaymentInfoToAdd.BankId=req.PaymentInfo.BankId;
-                            }
-
-                            await _context.OrderPaymentInfo.AddAsync(orderPaymentInfoToAdd);
+                            orderPaymentInfoToAdd.PaymentStatusId=MayMayShopConst.PAYMENT_STATUS_CHECK;
                         }
+
+                        await _context.OrderPaymentInfo.AddAsync(orderPaymentInfoToAdd);                       
                         await _context.SaveChangesAsync();
                     }
                     #endregion
@@ -1005,6 +1138,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<List<GetOrderHistoryResponse>> GetOrderHistory(GetOrderHistoryRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             var orderDate=Convert.ToDateTime(request.OrderDate).Date;
             var paymentDate=Convert.ToDateTime(request.PaymentDate).Date;
 
@@ -1013,7 +1148,7 @@ namespace MayMayShop.API.Repos
                                                 join pay in _context.OrderPaymentInfo  on ord.Id equals pay.OrderId
                                                 where ord.OrderUserId == request.UserId
                                                 && (string.IsNullOrEmpty(request.VoucherNo) || ord.VoucherNo.Contains(request.VoucherNo))
-                                                && (request.PaymentStatusId==0 || ord.OrderPaymentInfo.Where(p=>p.OrderId==ord.Id && p.PaymentStatusId==request.PaymentStatusId).OrderByDescending(p=>p.TransactionDate).FirstOrDefault().PaymentStatusId==request.PaymentStatusId)
+                                                && (request.PaymentStatusId==0 || ord.OrderPaymentInfo.Where(p=>p.OrderId==ord.Id).OrderByDescending(p=>p.TransactionDate).FirstOrDefault().PaymentStatusId==request.PaymentStatusId)
                                                 && (request.OrderStatusId==0 || ord.OrderStatusId == request.OrderStatusId)
                                                 && ((orderDate.ToString("dd-MMM-yy") == "01-Jan-01") || ord.OrderDate.Date == orderDate.Date)
                                                 && ((paymentDate.ToString("dd-MMM-yy") == "01-Jan-01") || pay.TransactionDate.Date == paymentDate.Date)
@@ -1045,7 +1180,7 @@ namespace MayMayShop.API.Repos
                                         TransactionDate = itm.TransactionDate,
                                         PaymentStatusId = itm.PaymentStatus.Id,
                                         PaymentStatus = itm.PaymentStatus.Name,
-                                        PaymentServiceName = itm.PaymentService.Name,
+                                        PaymentServiceName =isZawgyi?Rabbit.Uni2Zg(itm.PaymentService.Name):itm.PaymentService.Name,
                                         PaymentServiceImgPath = itm.PaymentService.ImgPath
                                     }).OrderByDescending(p => p.TransactionDate).FirstOrDefaultAsync();
                         if (paymentInfo != null)
@@ -1064,7 +1199,7 @@ namespace MayMayShop.API.Repos
                         var orderStatus = await _context.OrderStatus.Where(x => x.Id == orderDetails.OrderStatusId).FirstOrDefaultAsync();
                         if (orderStatus != null)
                         {
-                            orderHistory.OrderStatus = orderStatus.Name;
+                            orderHistory.OrderStatus =isZawgyi?Rabbit.Uni2Zg(orderStatus.Name):orderStatus.Name;
                         }
                         else
                         {
@@ -1101,6 +1236,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<List<GetOrderHistoryResponse>> GetOrderHistorySeller(GetOrderHistorySellerRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             var orderDate=Convert.ToDateTime(request.OrderDate).Date;
             var paymentDate=Convert.ToDateTime(request.PaymentDate).Date;
 
@@ -1133,7 +1270,7 @@ namespace MayMayShop.API.Repos
                                         TransactionDate = itm.TransactionDate,
                                         PaymentStatusId = itm.PaymentStatus.Id,
                                         PaymentStatus = itm.PaymentStatus.Name,
-                                        PaymentServiceName = itm.PaymentService.Name,
+                                        PaymentServiceName =isZawgyi?Rabbit.Uni2Zg(itm.PaymentService.Name):itm.PaymentService.Name,
                                         PaymentServiceImgPath = itm.PaymentService.ImgPath
                                     }).OrderByDescending(p => p.TransactionDate).FirstOrDefaultAsync();
                         if (paymentInfo != null)
@@ -1152,7 +1289,7 @@ namespace MayMayShop.API.Repos
                         var orderStatus = await _context.OrderStatus.Where(x => x.Id == orders.OrderStatusId).FirstOrDefaultAsync();
                         if (orderStatus != null)
                         {
-                            orderHistory.OrderStatus = orderStatus.Name;
+                            orderHistory.OrderStatus =isZawgyi?Rabbit.Uni2Zg(orderStatus.Name):orderStatus.Name;
                         }
                         else
                         {
@@ -1189,6 +1326,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<List<GetNotificationResponse>> GetNotificationBuyer(GetNotificationRequest request, int userId, string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
              List<GetNotificationResponse> response = new List<GetNotificationResponse>();
             var notificationList = await _context.Notification.Where(x => x.UserId == userId).ToListAsync();
             int notificationCount = 0;
@@ -1209,7 +1348,7 @@ namespace MayMayShop.API.Repos
                 {
                     GetNotificationResponse notification = new GetNotificationResponse();
                     notification.Id = notificationDetails.Id;
-                    notification.Body = notificationDetails.Body;
+                    notification.Body =isZawgyi?Rabbit.Uni2Zg(notificationDetails.Body):notificationDetails.Body;
                     notification.Url = notificationDetails.ImgUrl;
                     notification.RedirectAction = notificationDetails.RedirectAction;
                     notification.ReferenceAttribute = notificationDetails.ReferenceAttribute;
@@ -1227,6 +1366,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<List<GetNotificationResponse>> GetNotificationSeller(GetNotificationRequest request, int userId, string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
              List<GetNotificationResponse> response = new List<GetNotificationResponse>();
             var notificationList = await _context.Notification.Where(x => x.UserId == 0 || x.UserId == userId).ToListAsync();
            
@@ -1258,7 +1399,8 @@ namespace MayMayShop.API.Repos
                         notification.Id = notificationDetails.Id;
                         if(userInfo!=null)
                         {  
-                             notification.Body = userInfo.Name + " မှ အော်ဒါမှာယူခဲ့သည်";
+                             notification.Body =userInfo.Name + " မှ အော်ဒါမှာယူခဲ့သည်";
+                             notification.Body=isZawgyi?Rabbit.Uni2Zg(notification.Body):notification.Body;
                         }
                         notification.Url = notificationDetails.ImgUrl;
                         notification.RedirectAction = notificationDetails.RedirectAction;
@@ -1279,6 +1421,7 @@ namespace MayMayShop.API.Repos
                         if(userInfo!=null)
                         {  
                              notification.Body =notificationDetails.Body.Replace(userStr,userInfo.Name);
+                             notification.Body=isZawgyi?Rabbit.Uni2Zg(notification.Body):notification.Body;
                         }
                         notification.Url = notificationDetails.ImgUrl;
                         notification.RedirectAction = notificationDetails.RedirectAction;
@@ -1292,7 +1435,7 @@ namespace MayMayShop.API.Repos
                     {
                         GetNotificationResponse notification = new GetNotificationResponse();
                         notification.Id = notificationDetails.Id;
-                        notification.Body = notificationDetails.Body;
+                        notification.Body =isZawgyi?Rabbit.Uni2Zg(notificationDetails.Body):notificationDetails.Body;
                         notification.Url = notificationDetails.ImgUrl;
                         notification.RedirectAction = notificationDetails.RedirectAction;
                         notification.ReferenceAttribute = notificationDetails.ReferenceAttribute;
@@ -1334,6 +1477,10 @@ namespace MayMayShop.API.Repos
 
         public async Task<List<GetOrderListByProductResponse>> GetOrderListByProduct(GetOrderListByProductRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
+            request.ProductName=isZawgyi?Rabbit.Zg2Uni(request.ProductName):request.ProductName;
+
             List<GetOrderListByProductResponse> response = new List<GetOrderListByProductResponse>();
             List<OrderProductResponse> orderProductResponses = new List<OrderProductResponse>();
             var productAndOrder = (from p in _context.Product
@@ -1355,7 +1502,7 @@ namespace MayMayShop.API.Repos
                 foreach (var product in productAndOrder)
                 {
                     OrderProductResponse OrderProduct = new OrderProductResponse();
-                    OrderProduct.ProductName = product.Name;
+                    OrderProduct.ProductName =isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name;
                     OrderProduct.OrderCount = product.OrderCount;
                     OrderProduct.TotalQty = product.TotalQty;
                     OrderProduct.ProductId = product.ProductId;
@@ -1367,9 +1514,10 @@ namespace MayMayShop.API.Repos
             {
                 GetOrderListByProductResponse orderListProduct = new GetOrderListByProductResponse();
                 orderListProduct.ProductName = orderDetails.ProductName;
-                orderListProduct.OrderCount = _context.OrderDetail	
-                                        .Where(x=>x.ProductId==orderDetails.ProductId)	
-                                        .Sum(x=>x.Qty);
+                // orderListProduct.OrderCount = _context.OrderDetail
+                //                         .Where(x=>x.ProductId==orderDetails.ProductId)
+                //                         .Sum(x=>x.Qty);
+                orderListProduct.OrderCount=orderDetails.OrderCount;
                 orderListProduct.TotalQty = _context.ProductSku
                                         .Where(x=>x.ProductId==orderDetails.ProductId)
                                         .Sum(x=>x.Qty);
@@ -1460,12 +1608,15 @@ namespace MayMayShop.API.Repos
             //                           ProductUrl = z.pImg.pro.ProductImage.Where(x => x.isMain == true).FirstOrDefault()
 
             //                       }).ToListAsync();
+
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             var productDetails = await (from ordDtl in _context.OrderDetail
                                         join prd in _context.Product on ordDtl.ProductId equals prd.Id
                                         where ordDtl.ProductId == request.ProductId
                                         select new {
                                             ProductId = prd.Id,
-                                            ProductName = prd.Name,
+                                            ProductName =isZawgyi?Rabbit.Uni2Zg(prd.Name):prd.Name,
                                             OrderId = ordDtl.OrderId,
                                             Price = ordDtl.Price,
                                             SkuId = ordDtl.SkuId,
@@ -1495,7 +1646,7 @@ namespace MayMayShop.API.Repos
                                  && psku.ProductId == pvopt.ProductId
                                  && psku.VariantId == pvopt.VariantId
                                  && psku.ValueId == pvopt.ValueId
-                                 select pvopt.ValueName).ToListAsync();
+                                 select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
                 orderListByProduct.SkuValue += string.Join(",", sku) + " ";
 
                 foreach (var orderDetail in productDetails)
@@ -1508,7 +1659,7 @@ namespace MayMayShop.API.Repos
                                     .Select(z => new
                                     {
                                         OrderStatusId = z.ord.OrderStatusId,
-                                        UserName = z.ordDeli.Name,
+                                        UserName =isZawgyi?Rabbit.Uni2Zg(z.ordDeli.Name):z.ordDeli.Name,
                                         UserId = z.ord.OrderUserId,
                                         OrderDate = z.ord.OrderDate,
                                         CreatedDate = z.ord.CreatedDate
@@ -1520,7 +1671,7 @@ namespace MayMayShop.API.Repos
                                           && psku.ProductId == pvopt.ProductId
                                           && psku.VariantId == pvopt.VariantId
                                           && psku.ValueId == pvopt.ValueId
-                                          select pvopt.ValueName).ToListAsync();
+                                          select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
 
                     userOrder.Sku += string.Join(",", skuValue) + " ";
                     if (orderRes != null)
@@ -1529,7 +1680,7 @@ namespace MayMayShop.API.Repos
                         var orderStautsRes = await _context.OrderStatus.Where(x => x.Id == orderRes.OrderStatusId).FirstOrDefaultAsync();
                         if (orderStautsRes != null)
                         {
-                            userOrder.OrderStatus = orderStautsRes.Name;
+                            userOrder.OrderStatus =isZawgyi?Rabbit.Uni2Zg(orderStautsRes.Name): orderStautsRes.Name;
                         }
                         userOrder.UserId = orderRes.UserId;
                         userOrder.UserUrl = MayMayShopConst.AWS_USER_PROFILE_PATH + orderRes.UserId + ".png";
@@ -1553,8 +1704,8 @@ namespace MayMayShop.API.Repos
                                         Id = itm.Id,
                                         TransactionDate = itm.TransactionDate,
                                         PaymentStatusId = itm.PaymentStatus.Id,
-                                        PaymentStatus = itm.PaymentStatus.Name,
-                                        PaymentServiceName = itm.PaymentService.Name,
+                                        PaymentStatus =isZawgyi?Rabbit.Uni2Zg(itm.PaymentStatus.Name): itm.PaymentStatus.Name,
+                                        PaymentServiceName =isZawgyi?Rabbit.Uni2Zg(itm.PaymentService.Name): itm.PaymentService.Name,
                                         PaymentServiceImgPath = itm.PaymentService.ImgPath
                                     }).OrderByDescending(p => p.TransactionDate).FirstOrDefaultAsync();
                     if (paymentInfo != null)
@@ -1985,6 +2136,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<ResponseStatus> UpdatePaymentStatus(UpdatePaymentStatusRequest request, int currentUserLogin,string token,int platform)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             ResponseStatus response = new ResponseStatus();
 
             OrderPaymentInfo orderPaymentInfoDetail = await _context.OrderPaymentInfo.Where(x => x.Id == request.PaymentInfoId).FirstOrDefaultAsync();
@@ -1996,7 +2149,7 @@ namespace MayMayShop.API.Repos
             }
             else
             {
-                orderPaymentInfoDetail.SellerRemark=request.SellerRemark;
+                orderPaymentInfoDetail.SellerRemark=isZawgyi?Rabbit.Zg2Uni(request.SellerRemark):request.SellerRemark;
                 
                 int orderId = orderPaymentInfoDetail.OrderId;
                 int userId = 0;
@@ -2017,7 +2170,8 @@ namespace MayMayShop.API.Repos
                     paymentServiceName = paymentServiceDetail.Name;
                 }
 
-                if (orderPaymentInfoDetail.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_CHECK && request.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_SUCCESS)
+                // if (orderPaymentInfoDetail.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_CHECK && request.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_SUCCESS)
+                if (request.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_SUCCESS)
                 {
 
                     #region  Activity Log
@@ -2083,7 +2237,8 @@ namespace MayMayShop.API.Repos
                         return response;
                     }
                 }
-                else if (orderPaymentInfoDetail.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_CHECK && request.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_FAIL)
+                // else if (orderPaymentInfoDetail.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_CHECK && request.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_FAIL)
+                else if (request.PaymentStatusId == MayMayShopConst.PAYMENT_STATUS_FAIL)
                 {
                     #region  Activity Log
                     try{
@@ -2451,6 +2606,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<ResponseStatus> ChangeDeliveryAddress(ChangeDeliveryAddressRequest request)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             ResponseStatus response = new ResponseStatus();
             var order = await _context.Order.Where(x => x.Id == request.OrderId && x.OrderUserId == request.UserId).FirstOrDefaultAsync();
             if (order != null)
@@ -2464,9 +2621,9 @@ namespace MayMayShop.API.Repos
                     }
                     if (!String.IsNullOrEmpty(request.Remark) && request.Remark != "string")
                     {
-                        orderDelivery.Remark = request.Remark;
+                        orderDelivery.Remark =isZawgyi?Rabbit.Zg2Uni(request.Remark): request.Remark;
                     }
-                    orderDelivery.Address = request.Address;
+                    orderDelivery.Address =isZawgyi?Rabbit.Zg2Uni(request.Address):request.Address;
                     orderDelivery.TownshipId = request.TownshipId;
                     orderDelivery.CityId = request.CityId;
                 }
@@ -2483,6 +2640,8 @@ namespace MayMayShop.API.Repos
 
         public async Task<ResponseStatus> PaymentAgain(PaymentAgainRequest request, int currentUserLogin,int platform,string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             ResponseStatus response = new ResponseStatus();
 
             if (request.PaymentServiceId == MayMayShopConst.PAYMENT_SERVICE_COD)
@@ -2543,8 +2702,8 @@ namespace MayMayShop.API.Repos
                         NotificationTemplate notiTemplate = await _context.NotificationTemplate.
                             Where(a => a.ActionName == "PaymentAgain").SingleOrDefaultAsync();
                         var body = notiTemplate.Body.Replace("{userName}", orderUserInfo.Name);
-                        body = notiTemplate.Body.Replace("{orderId}", order.VoucherNo);
-                        body = notiTemplate.Body.Replace("{paymentServiceName}", paymentServiceName);
+                        body = body.Replace("{orderId}", order.VoucherNo);
+                        body = body.Replace("{paymentServiceName}", paymentServiceName);
                         
                         Models.Notification notification = new Models.Notification();
                         notification.Title = notiTemplate.Title;
@@ -2588,7 +2747,7 @@ namespace MayMayShop.API.Repos
                         PaymentServiceId = request.PaymentServiceId,
                         TransactionDate = DateTime.Now,
                         PhoneNo = request.PhoNo,
-                        Remark = request.Remark,
+                        Remark =isZawgyi?Rabbit.Zg2Uni(request.Remark):request.Remark,
                         ApprovalImgUrl = path.ImgPath,
                         PaymentStatusId = MayMayShopConst.PAYMENT_STATUS_CHECK
                     };
@@ -2607,7 +2766,7 @@ namespace MayMayShop.API.Repos
                     response.StatusCode =StatusCodes.Status200OK;
                     response.Message = "Success";
 
-                     #region  Activity Log
+                    #region  Activity Log
                     try{
                         ActivityLog data=new ActivityLog(){
                             UserId=currentUserLogin,
@@ -2634,8 +2793,8 @@ namespace MayMayShop.API.Repos
                         NotificationTemplate notiTemplate = await _context.NotificationTemplate.
                             Where(a => a.ActionName == "PaymentAgain").SingleOrDefaultAsync();
                         var body = notiTemplate.Body.Replace("{userName}", orderUserInfo.Name);
-                        body = notiTemplate.Body.Replace("{orderId}", order.VoucherNo);
-                        body = notiTemplate.Body.Replace("{paymentServiceName}", paymentServiceName);
+                        body = body.Replace("{orderId}", order.VoucherNo);
+                        body = body.Replace("{paymentServiceName}", paymentServiceName);
                         
                         Models.Notification notification = new Models.Notification();
                         notification.Title = notiTemplate.Title;
@@ -2667,7 +2826,6 @@ namespace MayMayShop.API.Repos
             }
             return response;
         }
-
         public async Task<ResponseStatus> PaymentApprove(PaymentApproveRequest request, int currentUserLogin,int platform)
         {
             ResponseStatus response = new ResponseStatus();
@@ -2691,9 +2849,10 @@ namespace MayMayShop.API.Repos
             }
             return response;
         }
-    
         public async Task<GetOrderDetailResponse> GetOrderDetail(int orderId,string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             List<OrderIdList> orderIdList = new List<OrderIdList>();
 
             var orderList = await (from ord in _context.Order
@@ -2780,15 +2939,15 @@ namespace MayMayShop.API.Repos
                 OrderStatus = new GetOrderDetailOrderStatus
                 {
                     Id = ord.OrderStatusId,
-                    Name = ord.OrderStatus.Name
+                    Name =isZawgyi?Rabbit.Uni2Zg(ord.OrderStatus.Name):ord.OrderStatus.Name
                 },
                 OrderItem = null,
                 DeliveryInfo = new GetOrderDetailDeliveryInfo
                 {
-                    Name = ord.OrderDeliveryInfo.Name,
-                    Address = ord.OrderDeliveryInfo.Address,
+                    Name =isZawgyi?Rabbit.Uni2Zg(ord.OrderDeliveryInfo.Name):ord.OrderDeliveryInfo.Name,
+                    Address =isZawgyi?Rabbit.Uni2Zg(ord.OrderDeliveryInfo.Address):ord.OrderDeliveryInfo.Address,
                     PhNo = ord.OrderDeliveryInfo.PhNo,
-                    Remark = ord.OrderDeliveryInfo.Remark,
+                    Remark =isZawgyi?Rabbit.Uni2Zg(ord.OrderDeliveryInfo.Remark):ord.OrderDeliveryInfo.Remark,
                     CityId = ord.OrderDeliveryInfo.CityId,
                     TownshipId = ord.OrderDeliveryInfo.TownshipId,
                     DeliveryDate=ord.OrderDeliveryInfo.DeliveryDate.ToString("dd MMM yyyy") + "(" + ord.OrderDeliveryInfo.FromTime + " - " + ord.OrderDeliveryInfo.ToTime + ")",
@@ -2813,7 +2972,7 @@ namespace MayMayShop.API.Repos
                                             .Select(deliService=>new GetOrderDeailDeliveryService
                                             {
                                                 Id = deliService.Id,
-                                                Name = deliService.Name,
+                                                Name =isZawgyi?Rabbit.Uni2Zg(deliService.Name):deliService.Name,
                                                 FromEstDeliveryDay = 0,
                                                 ToEstDeliveryDay = 0,
                                                 ImgPath = deliService.ImgPath,
@@ -2846,6 +3005,9 @@ namespace MayMayShop.API.Repos
             resp.DeliveryInfo.CityName =await _deliServices.GetCityName(token,resp.DeliveryInfo.CityId);
             resp.DeliveryInfo.TownshipName =await _deliServices.GetTownshipName(token,resp.DeliveryInfo.TownshipId);
 
+            resp.DeliveryInfo.CityName=isZawgyi?Rabbit.Uni2Zg(resp.DeliveryInfo.CityName):resp.DeliveryInfo.CityName;
+            resp.DeliveryInfo.TownshipName=isZawgyi?Rabbit.Uni2Zg(resp.DeliveryInfo.TownshipName):resp.DeliveryInfo.TownshipName;
+
             resp.DeliveryInfo.DeliveryService.FromEstDeliveryDay = deliveryRate.FromEstDeliveryDay;
             resp.DeliveryInfo.DeliveryService.ToEstDeliveryDay = deliveryRate.ToEstDeliveryDay;
             resp.DeliveryInfo.DeliveryService.ServiceAmount = deliveryRate.ServiceAmount;
@@ -2858,19 +3020,19 @@ namespace MayMayShop.API.Repos
                     PhoneNo = itm.PhoneNo,
                     IsApproved = itm.IsApproved,
                     ApproveImg =itm.ApprovalImgUrl, //_context.PaySlip.Where(a=>a.OrderPaymentInfoId==itm.Id).Select(a=>a.Url).ToArray(),
-                    Remark = itm.Remark,  
-                    SellerRemark=itm.SellerRemark,
+                    Remark =isZawgyi?Rabbit.Uni2Zg(itm.Remark):itm.Remark,  
+                    SellerRemark=isZawgyi?Rabbit.Uni2Zg(itm.SellerRemark):itm.SellerRemark,
                     BankId=itm.BankId==null?0:itm.BankId,
                     BankName=itm.Bank.Name==null?" ":itm.Bank.Name,
                     BankLogo=itm.Bank.Url==null?" ":itm.Bank.Url,                  
                     PaymentStatus = new GetOrderDetailPaymentStatus
                     {
                         Id = itm.PaymentStatus.Id,                        
-                        Name = itm.PaymentStatus.Name
+                        Name =isZawgyi?Rabbit.Uni2Zg(itm.PaymentStatus.Name): itm.PaymentStatus.Name
                     },
                     PaymentService = new GetOrderDeailPaymentService
                     {
-                        Name = itm.PaymentService.Name,
+                        Name =isZawgyi?Rabbit.Uni2Zg(itm.PaymentService.Name): itm.PaymentService.Name,
                         BankName= _context.Bank.Where(x=>x.Id==itm.BankId).Select(x=>x.Name).FirstOrDefault(),
                         ImgPath = itm.PaymentService.ImgPath
                     }
@@ -2880,7 +3042,7 @@ namespace MayMayShop.API.Repos
             {
                 GetOrderDeailOrderPaymentInfo orderPaymentInfoRes = new GetOrderDeailOrderPaymentInfo();
                 GetOrderDeailPaymentService paymentService1 = new GetOrderDeailPaymentService();
-                paymentService1.Name = "အိမ်အရောက် ငွေရှင်းစနစ်ဖြင့် ဝယ်ယူထားပါသည်";
+                paymentService1.Name =isZawgyi?Rabbit.Uni2Zg("အိမ်အရောက် ငွေရှင်းစနစ်ဖြင့် ဝယ်ယူထားပါသည်"): "အိမ်အရောက် ငွေရှင်းစနစ်ဖြင့် ဝယ်ယူထားပါသည်";
                 orderPaymentInfoRes.PaymentService = paymentService1;
                 GetOrderDetailPaymentStatus PaymentStatus1 = new GetOrderDetailPaymentStatus();
                 PaymentStatus1.Id = 0;
@@ -2895,13 +3057,13 @@ namespace MayMayShop.API.Repos
                     Id = itm.ProductId,
                     SkuId = itm.SkuId,
                     Url = _context.ProductImage.Where(prdImg => prdImg.ProductId == itm.ProductId && prdImg.isMain == true).Select(x => x.Url).FirstOrDefault(),
-                    Name = _context.Product.Where(prd => prd.Id == itm.ProductId).Select(x => x.Name).FirstOrDefault(),
+                    Name = _context.Product.Where(prd => prd.Id == itm.ProductId).Select(x =>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name).FirstOrDefault(),
                     Qty = itm.Qty,
-                    OriginalPrice = itm.Price,
+                    OriginalPrice = itm.OriginalPrice,
                     // PromotePrice=_context.ProductPromotion.Where(p => p.ProductId == itm.ProductId).Select(p => p.TotalAmt).FirstOrDefault(),
                     // PromotePercent=_context.ProductPromotion.Where(p => p.ProductId == itm.ProductId).Select(p => p.Percent).FirstOrDefault(),
-                    PromotePrice=0,
-                    PromotePercent=0
+                    PromotePrice=itm.OriginalPrice - itm.Discount,
+                    PromotePercent=itm.PromotePercent,
                     
                 }).ToListAsync();
 
@@ -2914,27 +3076,27 @@ namespace MayMayShop.API.Repos
                                       && psku.ProductId == pvopt.ProductId
                                       && psku.VariantId == pvopt.VariantId
                                       && psku.ValueId == pvopt.ValueId
-                                      select pvopt.ValueName).ToListAsync();
+                                      select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
 
                 item.SkuValue = string.Join(",", skuValue);
 
-                #region GetPromotion
-                var productPromote = await _context.ProductPromotion
-                                                .Where(x => x.ProductId == item.Id)
-                                                .FirstOrDefaultAsync();
+                // #region GetPromotion
+                // var productPromote = await _context.ProductPromotion
+                //                                 .Where(x => x.ProductId == item.Id)
+                //                                 .FirstOrDefaultAsync();
                                
-                int promotePercent=0;
-                double promotePrice=0;
-                if(productPromote!=null && productPromote.Percent>0)
-                {
-                    promotePercent=productPromote.Percent;
-                    double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)item.OriginalPrice).ToString("0.00"));
-                    promotePrice=item.OriginalPrice-discountPrice;
-                    item.PromotePercent=promotePercent;
-                    item.PromotePrice=promotePrice;
-                }
+                // int promotePercent=0;
+                // double promotePrice=0;
+                // if(productPromote!=null && productPromote.Percent>0)
+                // {
+                //     promotePercent=productPromote.Percent;
+                //     double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)item.OriginalPrice).ToString("0.00"));
+                //     promotePrice=item.OriginalPrice-discountPrice;
+                //     item.PromotePercent=promotePercent;
+                //     item.PromotePrice=promotePrice;
+                // }
                 
-                #endregion
+                // #endregion
             }
 
             resp.PaymentService = await _context.PaymentService.Where(x => x.Id != MayMayShopConst.PAYMENT_SERVICE_COD && x.IsActive == true)
@@ -2942,14 +3104,82 @@ namespace MayMayShop.API.Repos
                 {
                     Id = s.Id,
                     ImgUrl = s.ImgPath,
-                    Name = s.Name
+                    Name =isZawgyi?Rabbit.Uni2Zg(s.Name): s.Name
                 }).ToListAsync();
+            
+            resp.NewPaymentService=await _miscellaneousRepo.GetPaymentServiceForBuyer();
 
             return resp;            
         }
-
         public async Task<PostOrderByKBZPayResponse> PostOrderByKBZPay(PostOrderRequest req, int userId, string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
+            PostOrderByKBZPayResponse response = new PostOrderByKBZPayResponse(){
+                        OrderId=0,
+                        Timestamp=0,
+                        NonceStr="",
+                        TransactionId="",
+                        Precreate=new KBZPrecreateResponse(){
+                            Response=new Response(){
+                                result="",
+                                code="",
+                                msg="",
+                                merch_order_id="",
+                                prepay_id="",
+                                nonce_str="",
+                                sign_type="",
+                                sign=""
+                            }
+                        }
+                    };
+
+            #region Check qty before order
+
+                    var issueList=new List<ProductIssues>();
+                    
+                    foreach (var item in req.ProductInfo)
+                    {
+                        var product=await _context.Product.Where(x=>x.Id==item.ProductId).SingleOrDefaultAsync();
+                        var skuProductQty = await _context.ProductSku.Where(x => x.ProductId == item.ProductId && x.SkuId == item.SkuId).FirstOrDefaultAsync();
+                        if(!product.IsActive)
+                        {
+                             var issue=new ProductIssues(){
+                                    ProductId=item.ProductId,
+                                    ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
+                                    Action="Delete",
+                                    Qty=skuProductQty.Qty,
+                                    Reason=string.Format("Your order item - {0} has been deleted by seller.",product.Name)
+                                };
+                                issueList.Add(issue);
+                        }
+                        
+                        else if (skuProductQty != null)
+                        {
+                            if(item.Qty>skuProductQty.Qty){//Check if add to cart qty > stock qty. Can't make order
+                               
+                                var issue=new ProductIssues(){
+                                    ProductId=item.ProductId,
+                                    ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
+                                     Action="OutOfStock",
+                                    Qty=skuProductQty.Qty,
+                                    Reason=string.Format("You'er order {0} of {1}, but we only have {2} left.",(item.Qty>1?item.Qty+" quantities" : item.Qty+" quantity" ),(product.Name),(skuProductQty.Qty>1?skuProductQty.Qty+" quantities" : skuProductQty.Qty+" quantity" ))
+                                };
+                                issueList.Add(issue);                                
+                            }            
+                        }                         
+                    }
+                    if(issueList.Count()>0)
+                    {
+                        response.OrderId = 0;
+                        response.StatusCode=StatusCodes.Status400BadRequest;
+                        response.ProductIssues=issueList;
+                        return response;
+                    }  
+
+                    #endregion
+                    
+
             var transactionID= System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
             OrderTransaction transaction = new OrderTransaction(){
                 Id= transactionID,
@@ -2960,11 +3190,11 @@ namespace MayMayShop.API.Repos
             _context.OrderTransaction.Add(transaction);
             await _context.SaveChangesAsync();
 
-            PostOrderByKBZPayResponse response = await _paymentservices.KBZPrecreate(transactionID,req.NetAmt,req.Platform);
+            response = await _paymentservices.KBZPrecreate(transactionID,req.NetAmt,req.Platform);
             response.TransactionId = transaction.Id;
+            response.ProductIssues=new List<ProductIssues>();
             return response;
         }
-
         public async Task<PostOrderResponse> CheckKPayStatus(string transactionId, int userId, string token,int platform)
         {  
 
@@ -2986,16 +3216,16 @@ namespace MayMayShop.API.Repos
                             transaction.mm_order_id=kbzQueryOrder.Response.mm_order_id;
                             await _context.SaveChangesAsync();
                             
-                            // transaction.OrderId=resp.OrderId;
-                            // response.StatusCode=StatusCodes.Status200OK;
-                            // response.Message="အောင်မြင်သည်။";
+                            resp.OrderId=resp.OrderId;
+                            resp.StatusCode=StatusCodes.Status200OK;
+                            resp.Message="အောင်မြင်သည်။";
                             return resp;
                         }
                         else{
                             transaction.mm_order_id=kbzQueryOrder.Response.mm_order_id;
                             await _context.SaveChangesAsync();
-                            // response.StatusCode=StatusCodes.Status400BadRequest;
-                            // response.Message="မအောင်မြင်ပါ။";
+                            resp.StatusCode=StatusCodes.Status400BadRequest;
+                            resp.Message="မအောင်မြင်ပါ။";
                             return resp;
                         }
                     }else
@@ -3012,86 +3242,6 @@ namespace MayMayShop.API.Repos
             }
             return null;
         }
-
-        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
-        {
-            var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
-            OrderTransaction transaction = new OrderTransaction(){
-                Id= transactionID,
-                TransactionData = JsonConvert.SerializeObject(req),
-                CreatedBy = userId,
-                CreatedDate = DateTime.Now
-            };
-            _context.OrderTransaction.Add(transaction);
-            await _context.SaveChangesAsync();
-            List<ProductItem> items = new List<ProductItem>();
-            foreach (var item in req.ProductInfo)
-            {
-                string productName = "";
-                int amt = 0;
-                var product = new ProductItem();
-                if (item.Qty > 1)
-                {
-                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
-                    productName = productName+ "  x  "+item.Qty;
-                    amt = Convert.ToInt32(item.Price * item.Qty);
-                    product.name = productName;
-                    product.amount = amt;
-                }else{
-                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
-                    amt = Convert.ToInt32(item.Price);
-                    product.name = productName;
-                    product.amount = amt;
-                }
-                items.Add(product);
-            }
-            if (req.DeliveryFee > 0)
-            {
-                items.Add(new ProductItem{name = "Tax", amount = Convert.ToInt32(req.DeliveryFee)});
-            }
-            var payment_description = req.PaymentInfo.Remark;
-
-            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
-            return response;
-        }
-        public async Task<PostOrderResponse> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest request,int platform){
-            var resp = new PostOrderResponse();
-            if (request.status == "PAYMENT_CONFIRMED")
-            {
-                var transaction = await _context.OrderTransaction.Where(x => x.Id == request.merchantReferenceId).SingleOrDefaultAsync();
-                var has = _paymentservices.GenerateSHA256Hash_WaveTransaction(request);
-                if (request.hashValue == has)
-                {
-                    PostOrderRequest req= Newtonsoft.Json.JsonConvert.DeserializeObject<PostOrderRequest>(transaction.TransactionData);
-                        var imgUrlResponseList = new List<ImageUrlResponse>();
-                        req.PaymentInfo.ApprovalImage =new PostOrderPaymentImgage(){ApprovalImage="",ApprovalImageExtension="png"}; //new List<PostOrderPaymentImgage>();
-
-                        resp =await PostOrder(req,transaction.CreatedBy,null,platform) ;
-                        if(resp.StatusCode==StatusCodes.Status200OK)
-                        {
-                            transaction.OrderId=resp.OrderId;
-                            transaction.mm_order_id=request.paymentRequestId;
-                            await _context.SaveChangesAsync();
-                            
-                            // transaction.OrderId=resp.OrderId;
-                            // response.StatusCode=StatusCodes.Status200OK;
-                            // response.Message="အောင်မြင်သည်။";
-                            return resp;
-                        }
-                        else{
-                            transaction.mm_order_id=request.paymentRequestId;
-                            await _context.SaveChangesAsync();
-                            // response.StatusCode=StatusCodes.Status400BadRequest;
-                            // response.Message="မအောင်မြင်ပါ။";
-                            return resp;
-                        }
-                }
-            }else{
-                resp.StatusCode=StatusCodes.Status400BadRequest;
-                resp.Message="မအောင်မြင်ပါ။";
-            }
-            return resp;
-        }
         public async Task<List<string>> GetVoucherNoSuggestion(GetVoucherNoSuggestionRequest request)
         {
             return await _context.Order.Where(x=>x.VoucherNo.Contains(request.SearchText) && x.OrderUserId==request.UserId).OrderBy(x=>x.VoucherNo).Select(x=>x.VoucherNo)
@@ -3104,6 +3254,8 @@ namespace MayMayShop.API.Repos
         }
         public async Task<GetVoucherResponse> GetVoucher(int OrderId,string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             GetVoucherResponse response = new GetVoucherResponse();
 
             //Order
@@ -3139,7 +3291,10 @@ namespace MayMayShop.API.Repos
                              Qty=x.Qty,
                              Price=x.Price,
                              ProductId=x.ProductId,
-                             SkuId=x.SkuId
+                             SkuId=x.SkuId,
+                             OriginalPrice=x.OriginalPrice,
+                             PromotePrice=x.Price,
+                             PromotePercent=x.PromotePercent,
                             })
                             .ToListAsync();
             
@@ -3152,37 +3307,13 @@ namespace MayMayShop.API.Repos
                                       && psku.ProductId == pvopt.ProductId
                                       && psku.VariantId == pvopt.VariantId
                                       && psku.ValueId == pvopt.ValueId
-                                      select pvopt.ValueName).ToListAsync();
+                                      select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
 
                 item.Sku = string.Join(",", skuValue);
                 item.Name=await _context.Product
                         .Where(x=>x.Id==item.ProductId)
-                        .Select(x=>x.Name)
-                        .SingleOrDefaultAsync();
-
-                item.OriginalPrice=_context.ProductSku.Where(x=>x.ProductId==item.ProductId
-                                    && x.SkuId==item.SkuId)
-                                    .Select(x=>x.Price)
-                                    .SingleOrDefault();   
-                                    
-                #region GetPromotion
-
-                var productPromote = await _context.ProductPromotion
-                                                .Where(x => x.ProductId == item.ProductId)
-                                                .FirstOrDefaultAsync();
-
-                int promotePercent=0;
-                double promotePrice=0;
-                if(productPromote!=null && productPromote.Percent>0)
-                {
-                    promotePercent=productPromote.Percent;
-                    double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)item.Price).ToString("0.00"));
-                    promotePrice=item.Price-discountPrice;
-                }
-                item.PromotePrice=promotePrice;
-                item.PromotePercent=promotePercent;
-                
-                #endregion                   
+                        .Select(x=>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name)
+                        .SingleOrDefaultAsync();                   
             }
 
             //Commercial tax
@@ -3196,27 +3327,28 @@ namespace MayMayShop.API.Repos
             response.ShopName=MayMayShopConst.COMPANY_SHOP_NAME;
             response.Address=MayMayShopConst.COMPANY_SHOP_ADDRESS;
             response.PhoneNo=MayMayShopConst.COMPANY_PHONE_NO;
-            response.BuyerName=userInfo==null?"": userInfo.Name;
+            response.BuyerName=userInfo==null?"": (isZawgyi?Rabbit.Uni2Zg(userInfo.Name):userInfo.Name);
             response.BuyerPhoneNo=userInfo==null?"":userInfo.PhoneNo;
-            response.BuyerAddress=userInfo==null?"":userInfo.Address;
-            response.BuyerRemark=paymentInfo.Remark;
+            response.BuyerAddress=userInfo==null?"":(isZawgyi?Rabbit.Uni2Zg(userInfo.Address):userInfo.Address);
+            response.BuyerRemark=isZawgyi?Rabbit.Uni2Zg(paymentInfo.Remark):paymentInfo.Remark;
             response.VoucherNo=order.VoucherNo;
             response.OrderDate=order.OrderDate;
             response.TotalAmount=order.TotalAmt;
             response.DeliveryAmount=order.DeliveryFee;
             response.CommercialTax=commercialTax;
             response.NetAmount=order.NetAmt + commercialTax;
-            response.Discount=0;
-            response.PaymentType=paymentServices.Name;
+            response.Discount=_context.OrderDetail.Where(x=>x.OrderId==OrderId).Sum(x=>x.Discount);
+            response.PaymentType=isZawgyi?Rabbit.Uni2Zg(paymentServices.Name):paymentServices.Name;
             response.BankName=bank;
             response.QRCode=QRCodeHelper.GenerateQRCode(MayMayShopConst.COMPANY_ORDER_DETAIL_URL+OrderId);
             response.ItemList=orderDetail;
 
             return response;
         }
-
         public async Task<GetPOSVoucherResponse> GetPOSVoucher(int OrderId,int userId,string token)
         {
+            bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
+
             GetPOSVoucherResponse response = new GetPOSVoucherResponse();
 
             //Order
@@ -3252,7 +3384,10 @@ namespace MayMayShop.API.Repos
                              Qty=x.Qty,
                              Price=x.Price,
                              ProductId=x.ProductId,
-                             SkuId=x.SkuId
+                             SkuId=x.SkuId,
+                             OriginalPrice=x.OriginalPrice,
+                             PromotePrice=x.Price,
+                             PromotePercent=x.PromotePercent,
                             })
                             .ToListAsync();
             
@@ -3265,37 +3400,14 @@ namespace MayMayShop.API.Repos
                                       && psku.ProductId == pvopt.ProductId
                                       && psku.VariantId == pvopt.VariantId
                                       && psku.ValueId == pvopt.ValueId
-                                      select pvopt.ValueName).ToListAsync();
+                                      select isZawgyi?Rabbit.Uni2Zg(pvopt.ValueName):pvopt.ValueName).ToListAsync();
 
                 item.Sku = string.Join(",", skuValue);
                 item.Name=await _context.Product
                         .Where(x=>x.Id==item.ProductId)
-                        .Select(x=>x.Name)
+                        .Select(x=>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name)
                         .SingleOrDefaultAsync();  
 
-                item.OriginalPrice=_context.ProductSku.Where(x=>x.ProductId==item.ProductId
-                                    && x.SkuId==item.SkuId)
-                                    .Select(x=>x.Price)
-                                    .SingleOrDefault();   
-                                    
-                #region GetPromotion
-
-                var productPromote = await _context.ProductPromotion
-                                                .Where(x => x.ProductId == item.ProductId)
-                                                .FirstOrDefaultAsync();
-
-                int promotePercent=0;
-                double promotePrice=0;
-                if(productPromote!=null && productPromote.Percent>0)
-                {
-                    promotePercent=productPromote.Percent;
-                    double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)item.Price).ToString("0.00"));
-                    promotePrice=item.Price-discountPrice;
-                }
-                item.PromotePrice=promotePrice;
-                item.PromotePercent=promotePercent;
-                
-                #endregion                                       
             }
 
             //Commercial tax
@@ -3314,11 +3426,11 @@ namespace MayMayShop.API.Repos
             response.TotalAmount=order.TotalAmt;
             response.DeliveryAmount=order.DeliveryFee;
             response.NetAmount=order.NetAmt + commercialTax;
-            response.Discount=0;
-            response.PaymentType=paymentServices.Name;
+            response.Discount=_context.OrderDetail.Where(x=>x.OrderId==OrderId).Sum(x=>x.Discount);
+            response.PaymentType=isZawgyi?Rabbit.Uni2Zg(paymentServices.Name):paymentServices.Name;
             response.BankName=bank;
             response.TaxplayerId=MayMayShopConst.TAX_TAXPAYER_ID;
-            response.Cashier=userInfo==null?"":userInfo.Name;
+            response.Cashier=userInfo==null?"":(isZawgyi?Rabbit.Uni2Zg(userInfo.Name):userInfo.Name);
             response.Changed=0;
             response.CommercialTax=commercialTax;
             response.ItemList=orderDetail;
@@ -3326,11 +3438,10 @@ namespace MayMayShop.API.Repos
 
             return response;
         }
-
-        public async Task<bool> CallBackKPayNotify(string transactionId)
+        public async Task<bool> CallBackKPayNotify(KBZNotifyRequest request)
         {
             var trans=await _context.OrderTransaction
-            .Where(x=>x.Id==transactionId)
+            .Where(x=>x.Id==request.Request.merch_order_id)
             .SingleOrDefaultAsync();
             if(trans!=null && trans.OrderId!=null && trans.OrderId>0)
             {
@@ -3342,6 +3453,108 @@ namespace MayMayShop.API.Repos
             }
         }
 
+        //------wave-------//
+        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
+        {
+            var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
+            OrderTransaction transaction = new OrderTransaction(){
+                Id= transactionID,
+                TransactionData = JsonConvert.SerializeObject(req),
+                CreatedBy = userId,
+                CreatedDate = DateTime.Now
+            };
+            _context.OrderTransaction.Add(transaction);
+            await _context.SaveChangesAsync();
+            List<ProductItem> items = new List<ProductItem>();
+            foreach (var item in req.ProductInfo)
+            {
+                 var productSku=await _context.ProductSku
+                .Where(x=>x.ProductId==item.ProductId
+                && x.SkuId==item.SkuId)
+                .SingleOrDefaultAsync();
+                        
+                #region GetPromotion
+                var productPromote=_context.ProductPromotion.Where(x=>x.ProductId==item.ProductId).FirstOrDefault();
+                
+                if(productPromote!=null && productPromote.Percent>0)
+                {
+                    double discountPrice= double.Parse((((double)productPromote.Percent/(double)100)*(double)productSku.Price).ToString("0.00"));
+                    item.Price=item.Price-discountPrice;                    
+                }
+                else{
+                    item.Price=productSku.Price;
+                }
+                                
+                #endregion
+
+                string productName = "";
+                int amt = 0;
+                var product = new ProductItem();
+                if (item.Qty > 1)
+                {
+                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
+                    productName = productName+ "  x  "+item.Qty;
+                    amt = Convert.ToInt32(item.Price * item.Qty);
+                    product.name = productName;
+                    product.amount = amt;
+                }else{
+                    productName = _context.Product.Where(x => x.Id == item.ProductId).Select(x => x.Name).SingleOrDefault();
+                    amt = Convert.ToInt32(item.Price);
+                    product.name = productName;
+                    product.amount = amt;
+                }
+                items.Add(product);
+            }
+            if (req.DeliveryFee > 0)
+            {
+                items.Add(new ProductItem{name = "Delivery Fee", amount = Convert.ToInt32(req.DeliveryFee)});
+            }
+            var payment_description =string.IsNullOrEmpty(req.PaymentInfo.Remark)?"-":req.PaymentInfo.Remark;
+
+            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
+            return response;
+        }
+        public async Task<PostOrderResponse> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest request,int platform)
+        {
+            var resp = new PostOrderResponse();
+            if (request.status == "PAYMENT_CONFIRMED")
+            {
+                var transaction = await _context.OrderTransaction.Where(x => x.Id == request.merchantReferenceId).SingleOrDefaultAsync();
+                var has = _paymentservices.GenerateSHA256Hash_WaveTransaction(request);
+                if (request.hashValue == has)
+                {
+                    PostOrderRequest req= Newtonsoft.Json.JsonConvert.DeserializeObject<PostOrderRequest>(transaction.TransactionData);
+                        var imgUrlResponseList = new List<ImageUrlResponse>();
+                        req.PaymentInfo.ApprovalImage =new PostOrderPaymentImgage(){ApprovalImage="",ApprovalImageExtension="png"}; //new List<PostOrderPaymentImgage>();
+
+                        resp =await PostOrder(req,transaction.CreatedBy,null,platform) ;
+                        if(resp.StatusCode==StatusCodes.Status200OK)
+                        {
+                            transaction.OrderId=resp.OrderId;
+                            transaction.mm_order_id=request.paymentRequestId;
+                            await _context.SaveChangesAsync();
+                            
+                            // transaction.OrderId=resp.OrderId;
+                            // response.StatusCode=StatusCodes.Status200OK;
+                            // response.Message="အောင်မြင်သည်။";
+                            return resp;
+                        }
+                        else{
+                            transaction.mm_order_id=request.paymentRequestId;
+                            await _context.SaveChangesAsync();
+                            // response.StatusCode=StatusCodes.Status400BadRequest;
+                            // response.Message="မအောင်မြင်ပါ။";
+                            return resp;
+                        }
+                }
+            }else{
+                var removetransaction = await _context.OrderTransaction.Where(x => x.Id == request.merchantReferenceId).FirstOrDefaultAsync();
+                _context.OrderTransaction.Remove(removetransaction);
+                resp.StatusCode=StatusCodes.Status400BadRequest;
+                resp.Message="မအောင်မြင်ပါ။";
+            }
+            return resp;
+        }
         public async Task<GetOrderDetailResponse> GetOrderDetailByTransactionId(string transactionId, string token)
         {
             var resp = new GetOrderDetailResponse();
@@ -3352,5 +3565,6 @@ namespace MayMayShop.API.Repos
             }
             return resp;
         }
+       
     }
-}
+} 
