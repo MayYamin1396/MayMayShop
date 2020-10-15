@@ -3795,6 +3795,18 @@ namespace MayMayShop.API.Repos
                     .Where(x=>x.ProductId==productId)
                     .ToListAsync();
         }
+        public async Task<List<GetProductTypeResponse>> GetProductType()
+        {
+            return await _context.ProductType
+            .Where(x=>x.IsActive==true)
+            .Select(x=>new GetProductTypeResponse{
+                Id=x.Id,
+                Name=x.Name,
+                Description=x.Description,
+                Url=x.Url
+            })
+            .ToListAsync();
+        }
         //------------------------Brand-----------------------//
         public async Task<GetProductByBrandResponse> GetProductByBrand(GetProductByBrandRequest request)
         {

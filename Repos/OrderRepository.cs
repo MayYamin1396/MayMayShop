@@ -2992,11 +2992,25 @@ namespace MayMayShop.API.Repos
             // resp.OrderCount = orderCount;
             resp.UserUrl =MayMayShopConst.AWS_USER_PROFILE_PATH + resp.UserId + ".png";
            
-            #region GetDeliveryServiceRate            
-            var deliveryRate= await _deliServices.GetDeliveryServiceRate(resp.DeliveryInfo.DeliveryService.Id,
-                              int.Parse(resp.DeliveryInfo.CityId.ToString()),
-                              int.Parse(resp.DeliveryInfo.TownshipId.ToString()),
-                              token);
+            #region GetDeliveryServiceRate      	
+            var deliveryRate=new GetDeliveryServiceRateResponse(){	
+                DeliveryServiceId=0,	
+                CityId=0,	
+                TownshipId=0,	
+                FromEstDeliveryDay=0,	
+                ToEstDeliveryDay=0,	
+                ServiceAmount=0	
+            };	
+            resp.DeliveryInfo.DeliveryService=new GetOrderDeailDeliveryService();	
+            if(resp.DeliveryInfo.DeliveryService!=null)	
+            {	
+              var deliRate= await _deliServices.GetDeliveryServiceRate(resp.DeliveryInfo.DeliveryService.Id,	
+                              int.Parse(resp.DeliveryInfo.CityId.ToString()),	
+                              int.Parse(resp.DeliveryInfo.TownshipId.ToString()),	
+                              token);	
+              deliveryRate=deliRate;	
+            }	
+           	
             #endregion
 
             resp.DeliveryInfo.DeliveryServiceId = null;

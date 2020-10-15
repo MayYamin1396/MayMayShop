@@ -35,6 +35,7 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<ResponseStatus> UploadProduct(UploadProductRequest request,int currentLoginID);
         Task<GetAllProductListBuyerResponse> GetAllProductListBuyer(GetAllProductListBuyerRequest request);
         Task<List<ProductImage>> GetAllProductImageByProductId(int productId);
+        Task<List<GetProductTypeResponse>> GetProductType();
         Task<GetProductByBrandResponse> GetProductByBrand(GetProductByBrandRequest request);
     }
 }
