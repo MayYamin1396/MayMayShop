@@ -185,7 +185,8 @@ namespace MayMayShop.API.Services
                              imgPhoto.VerticalResolution);
 
             Graphics grPhoto = Graphics.FromImage(bmPhoto);
-            grPhoto.Clear(Color.Gray);
+             grPhoto.Clear(System.Drawing.ColorTranslator.FromHtml("#f4f4f4"));
+            // grPhoto.Clear(Color.Gray);
             grPhoto.InterpolationMode =
                     InterpolationMode.HighQualityBicubic;
 

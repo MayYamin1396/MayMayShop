@@ -1094,9 +1094,18 @@ namespace MayMayShop.API.Repos
             var productCategoryList=await _memberPointServices.GetProductCategoryForCreateConfigMemberPoint(token);
                         
             var productCategoryId=productCategoryList.Select(x=>x.ProductCategoryId).ToArray();
+            
+            List<int?> mCID=await _context.ProductCategory
+                .Where(x=>x.IsDeleted!=true && x.SubCategoryId==null)
+                .Select(x=>x.Id)
+                .Distinct()
+                .Cast<int?>()
+                .ToListAsync();
+
             var productCategory= await _context.ProductCategory
                     .Where(x=>x.IsDeleted!=true
                     && !productCategoryId.Contains(x.Id)
+                    && mCID.Contains(x.SubCategoryId)
                     && x.SubCategoryId!=null 
                     && x.SubCategoryId!=0)
                     .Select(x=> new GetConfigMemberPointProductCategory{

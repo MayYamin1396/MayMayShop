@@ -10,6 +10,6 @@ namespace MayMayShop.Dtos.MiscellaneousDto
         public string BackgroundUrl {get;set;}
         public string HolderName {get;set;}
         public string AccountNo {get;set;}
-        public bool IsPaymentGateWay {get;set;}
+        public bool? IsPaymentGateWay {get;set;}
     }
 }

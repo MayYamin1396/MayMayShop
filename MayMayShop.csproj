@@ -6,7 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="7.0.0"/>
-    <PackageReference Include="DinkToPdf" Version="1.0.8"/>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.0.0"/>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="3.0.0">
@@ -26,15 +25,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.0.0"/>
     <PackageReference Include="FirebaseAdmin" Version="1.13.0"/>
     <PackageReference Include="log4net" Version="2.0.8"/>
-    <PackageReference Include="EPPlus" Version="5.2.1"/>
-    <PackageReference Include="GemBox.Document" Version="31.0.1239"/>
+    <PackageReference Include="EPPlus" Version="5.4.0"/>
     <PackageReference Include="QRCoder" Version="1.3.9"/>
     <PackageReference Include="DeviceDetector.NET" Version="4.2.0"/>
-    <Reference Include="Library\Web.Commons.dll">
-      <Name>Web.Commons.dll</Name>
-    </Reference>
-    <Reference Include="Library\libwkhtmltox.dll">
-      <Name>libwkhtmltox.dll</Name>
-    </Reference>
+    <PackageReference Include="ClosedXML" Version="0.95.3"/>
   </ItemGroup>
 </Project>

@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using OfficeOpenXml.Drawing;
 using DeviceDetectorNET.Parser;
+using System.Diagnostics;
 
 namespace MayMayShop.API.Controllers
 {
@@ -79,6 +80,7 @@ namespace MayMayShop.API.Controllers
                 {  
                     ImageUrlResponse img  =new ImageUrlResponse();                
                     img = await _services.UploadToS3(image.ImageContent, image.Extension,MayMayShopConst.AWS_PRODUCT_PATH);
+                    img.SeqNo=image.SeqNo;
                     imgList.Add(img);
                 }
                 
@@ -151,6 +153,7 @@ namespace MayMayShop.API.Controllers
                     ImageUrlResponse img  =new ImageUrlResponse();
                     img = await _services.UploadToS3(image.ImageContent, image.Extension,MayMayShopConst.AWS_PRODUCT_PATH);
                     img.Action="New";   
+                    img.SeqNo=image.SeqNo; 
                     imgList.Add(img);
                 }
                 
@@ -160,7 +163,14 @@ namespace MayMayShop.API.Controllers
             }
             catch (Exception e)
             {
-                log.Error(e.Message);
+                #region Exception Log	
+                var st = new StackTrace(e, true);	
+                var frame = st.GetFrame(0);	
+                var line = frame.GetFileLineNumber();	
+                string actionName = this.ControllerContext.RouteData.Values["action"].ToString();	
+                string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();	
+                log.Error(string.Format("Error in controller({0}) => action({1}) at line no {2} : error message => {3}, inner exception => {4}",controllerName,actionName,line,e.Message,e.InnerException.Message));	
+                #endregion
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
@@ -617,6 +627,25 @@ namespace MayMayShop.API.Controllers
                 log.Error(e.Message);
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
+        }
+        [HttpGet("DownloadProductUploadTemplate")]	
+        [Authorize]	
+        [ServiceFilter(typeof(ActionActivity))]	
+        [ServiceFilter(typeof(ActionActivityLog))]	
+        public async Task<IActionResult> DownloadProductUploadTemplate()	
+        {	
+            string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";	
+            string fileName = "ProductUploadTemplate.xlsx";	
+            try	
+            {	
+                var content = await _repo.DownloadProductUploadTemplate();	
+                return File(content, contentType, fileName);	
+            }	
+            catch (Exception e)	
+            {	
+                log.Error(e.Message);	
+                return StatusCode(StatusCodes.Status500InternalServerError);	
+            }	
         }
     
         [HttpPost("UploadProduct")]

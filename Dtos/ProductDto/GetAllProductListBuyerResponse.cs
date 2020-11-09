@@ -15,6 +15,7 @@ namespace MayMayShop.API.Dtos.ProductDto
     }
     public class GetAllProductListBuyer{
         public int ProductId {get;set;}
+        public int? ProductTypeId {get;set;}
         public string Url {get;set;}
         public string Name {get;set;}        
         public double OriginalPrice {get;set;}

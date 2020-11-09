@@ -354,6 +354,7 @@ namespace MayMayShop.API.Repos
                                         ProductCount=_context.Product
                                                     .Where(p=>p.ProductCategoryId==a.Id
                                                     && p.IsActive==true
+                                                    && p.ProductStatus=="Published"
                                                     &&!productSkuIDs.Contains(p.Id) )
                                                     .Count(),
                                         Variant=_context.Variant
