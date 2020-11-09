@@ -3311,7 +3311,7 @@ namespace MayMayShop.API.Repos
                              PromotePercent=x.PromotePercent,
                             })
                             .ToListAsync();
-            
+            double totalAmount=0;
             foreach (var item in orderDetail)
             {
                 var skuValue = await (from psku in _context.ProductSkuValue
@@ -3327,7 +3327,8 @@ namespace MayMayShop.API.Repos
                 item.Name=await _context.Product
                         .Where(x=>x.Id==item.ProductId)
                         .Select(x=>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name)
-                        .SingleOrDefaultAsync();                   
+                        .SingleOrDefaultAsync();   
+                totalAmount=totalAmount+item.OriginalPrice;                
             }
 
             //Commercial tax
@@ -3347,7 +3348,7 @@ namespace MayMayShop.API.Repos
             response.BuyerRemark=isZawgyi?Rabbit.Uni2Zg(paymentInfo.Remark):paymentInfo.Remark;
             response.VoucherNo=order.VoucherNo;
             response.OrderDate=order.OrderDate;
-            response.TotalAmount=order.TotalAmt;
+            response.TotalAmount=totalAmount;
             response.DeliveryAmount=order.DeliveryFee;
             response.CommercialTax=commercialTax;
             response.NetAmount=order.NetAmt + commercialTax;
