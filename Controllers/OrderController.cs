@@ -409,7 +409,6 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
-
         [HttpPost("PostOrderByWavePay")]
         [Authorize]
         [ServiceFilter(typeof(ActionActivity))]
@@ -420,7 +419,32 @@ namespace MayMayShop.API.Controllers
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 string token = Request.Headers["Authorization"];
-                var response= await _repo.PostOrderByWavePay(request,userId,token);
+
+                var platform=3;
+                try{
+                    #region Platform 
+                    DeviceDetectorNET.DeviceDetector.SetVersionTruncation(VersionTruncation.VERSION_TRUNCATION_NONE);
+                    var userAgent = Request.Headers["User-Agent"];
+                    var result = DeviceDetectorNET.DeviceDetector.GetInfoFromUserAgent(userAgent);
+                    var agent = result.Success ? result.ToString().Replace(Environment.NewLine, "<br/>") : "Unknown";
+                    var agentArray=agent.Split("<br/>");                    
+                    if(MayMayShopConst.AndroidDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=1; //Android
+                    }
+                    else if(MayMayShopConst.IosDevice.Contains(agentArray[7].Replace("Name: ","").Replace(";","").Trim()))
+                    {
+                        platform=2; //IOS
+                    }
+                    else{
+                        platform=3; //Web                
+                    } 
+                    #endregion
+                }
+                catch{
+                }
+
+                var response= await _repo.PostOrderByWavePay(request,userId,token,platform);
                 return Ok(response);
             }
             catch (Exception e)
@@ -429,6 +453,7 @@ namespace MayMayShop.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
             }
         }
+
 
         [HttpPost("CheckWaveTransactionStatus")]
         // [Authorize]
@@ -1098,6 +1123,24 @@ namespace MayMayShop.API.Controllers
 
                 log.Info(string.Format("KPay Notify Response - {0}",response));
 
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                log.Error(e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError,e.Message);
+            }
+        }
+        [HttpGet("GetOrderIdByTransactionId")]
+        [Authorize]
+        [ServiceFilter(typeof(ActionActivity))]
+        [ServiceFilter(typeof(ActionActivityLog))]
+        public async Task<IActionResult> GetOrderIdByTransactionId(string transactionId)
+        {
+            try
+            {
+                string token = Request.Headers["Authorization"];
+                var response = await _repo.GetOrderIdByTransactionId(transactionId,token);
                 return Ok(response);
             }
             catch (Exception e)

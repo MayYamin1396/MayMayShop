@@ -1,8 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MayMayShop.API.Dtos.ProductDto
 {
     public class GetProductListRequest
     {
+        [Required]
         public int Filter {get;set;}
+        public string ProductStatus{get;set;}
         public string SearchText {get;set;}
         public int Count {get;set;}
         public int ProductCategoryId {get;set;}

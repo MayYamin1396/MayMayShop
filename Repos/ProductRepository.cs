@@ -19,6 +19,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
+using ClosedXML.Excel;
+using Newtonsoft.Json;
 
 namespace MayMayShop.API.Repos
 {
@@ -409,28 +411,45 @@ namespace MayMayShop.API.Repos
                 return null;
             }
         }
-
+        public async Task<List<PopulateSkuResponse>> PopulateSkuImage(List<PopulateSkuResponse> resp,List<SkuImage> SkuImages)	
+        {	
+            return resp;	
+        }
         public async Task<ResponseStatus> CreateProduct(CreateProductRequest req, List<ImageUrlResponse> imageUrlList,int currentLoginID)
         {
             using(var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
+                    #region check duplicate name	
+                    var isDuplicate=_context.Product	
+                    .Any(x=>x.Name.Trim().ToUpper()==req.Name.Trim().ToUpper() && x.IsActive==true);	
+                    if(isDuplicate){	
+                        return new ResponseStatus{	
+                        StatusCode=StatusCodes.Status400BadRequest,	
+                        Message=string.Format("{0}, product name is already existed.",req.Name)	
+                    };	
+                    }	
+                    #endregion
                     bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
                     #region Product
+
+                    req.ProductTypeId=req.ProductTypeId<=0?1:req.ProductTypeId;	
+                    req.ProductStatus=(string.IsNullOrEmpty(req.ProductStatus)|| req.ProductStatus=="string")?"Published":req.ProductStatus;	
 
                     var trnProduct = await _context.TrnProduct
                                 .Where(x => x.Id == req.ProductId)
                                 .FirstOrDefaultAsync();
-
                     var productToAdd = new Product()
                     {
-                        Name = isZawgyi?Rabbit.Zg2Uni(req.Name):req.Name,
+                        Name =isZawgyi?Rabbit.Zg2Uni(req.Name):req.Name,
                         IsActive = true,
-                        CreatedDate = DateTime.Now,
+                        ProductTypeId=req.ProductTypeId,
+                        BrandId = req.BrandId != 0 ? req.BrandId : (int?)null,
+                        ProductStatus=req.ProductStatus,
+                        CreatedDate=DateTime.Now,
                         CreatedBy = currentLoginID,
                         ProductCategoryId = trnProduct.ProductCategoryId,
-                        BrandId = req.BrandId != 0 ? req.BrandId : (int?)null,
                         Description = isZawgyi?Rabbit.Zg2Uni(req.Description):req.Description
                     };
                     await _context.Product.AddAsync(productToAdd);
@@ -679,6 +698,20 @@ namespace MayMayShop.API.Repos
             {
                 try
                 {
+                    log.Info("UpdateProduct req => " + JsonConvert.SerializeObject(req));
+                    log.Info("UpdateProduct img list => " + JsonConvert.SerializeObject(imageUrlList));
+
+                    #region check duplicate name
+                    var isDuplicate=_context.Product
+                    .Any(x=>x.Name.Trim().ToUpper()==req.Name.Trim().ToUpper() && x.Id!=req.ProductId && x.IsActive==true);
+                    if(isDuplicate){
+                        return new ResponseStatus{
+                        StatusCode=StatusCodes.Status400BadRequest,
+                        Message=string.Format("{0}, product name is already existed.",req.Name)
+                    };
+                    }
+                    #endregion
+
                     bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
                     #region Product
 
@@ -688,7 +721,14 @@ namespace MayMayShop.API.Repos
                     product.BrandId = req.BrandId != 0 ? req.BrandId : (int?)null;
                     product.UpdatedDate=DateTime.Now;
                     product.UpdatedBy=currentLoginID;
-                    
+                    if(req.ProductTypeId>0)
+                    {
+                        product.ProductTypeId=req.ProductTypeId;
+                    }
+                    if(!(string.IsNullOrEmpty(req.ProductStatus)|| req.ProductStatus=="string"))
+                    {
+                        product.ProductStatus=req.ProductStatus;
+                    }
                     #endregion
 
                     #region Image
@@ -737,8 +777,12 @@ namespace MayMayShop.API.Repos
                     if(!_context.ProductImage.Any(x=>x.ProductId==req.ProductId && x.isMain==true))
                     {
                         var isMainProduct=await _context.ProductImage.Where(x=>x.ProductId==req.ProductId).FirstOrDefaultAsync();
-                        isMainProduct.isMain=true;
-                        await _context.SaveChangesAsync();
+                        if(isMainProduct!=null)
+                        {
+                            isMainProduct.isMain=true;
+                            await _context.SaveChangesAsync();
+                        }
+                        
                     }
 
 
@@ -746,8 +790,10 @@ namespace MayMayShop.API.Repos
 
                     #region Price
 
-                    var productPrice = await _context.ProductPrice.Where(x=>x.Id==req.PriceId && x.ProductId==req.ProductId).SingleOrDefaultAsync();
+                     var productPrice = await _context.ProductPrice.Where(x=>x.Id==req.PriceId && x.ProductId==req.ProductId).SingleOrDefaultAsync();
                     productPrice.Price=req.Price;
+                    // productPrice.StartDate= req.ProductPrice.FromDate==null? DateTime.Now: Convert.ToDateTime(req.ProductPrice.FromDate);
+                    // productPrice.EndDate=req.ProductPrice.ToDate;
 
                     #endregion
                 
@@ -2758,6 +2804,7 @@ namespace MayMayShop.API.Repos
             {
                 productList= await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && (String.IsNullOrEmpty(request.SearchText) || x.Name.Contains(request.SearchText))
                             && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
@@ -2768,6 +2815,7 @@ namespace MayMayShop.API.Repos
                             .ToListAsync();
                 totalCount=await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && (String.IsNullOrEmpty(request.SearchText) || x.Name.Contains(request.SearchText))
                             && (request.ProductCategoryId==0 || subCatIds.Contains(x.ProductCategoryId))
                             && (pTags.Length==0 || pTags.Contains(x.Id))
@@ -2783,6 +2831,7 @@ namespace MayMayShop.API.Repos
                             .ToListAsync();
                 productList= await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && ppIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
@@ -2795,6 +2844,7 @@ namespace MayMayShop.API.Repos
                 
                 totalCount=await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && ppIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
@@ -2819,6 +2869,7 @@ namespace MayMayShop.API.Repos
 
                 productList= await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && outOfStock.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
@@ -2831,6 +2882,7 @@ namespace MayMayShop.API.Repos
 
                 totalCount= await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && outOfStock.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
@@ -2846,6 +2898,7 @@ namespace MayMayShop.API.Repos
                             .ToListAsync();
                 productList= await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && proIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
@@ -2858,6 +2911,7 @@ namespace MayMayShop.API.Repos
 
                 totalCount= await _context.Product
                             .Where(x => x.IsActive == true
+                            && (String.IsNullOrEmpty(request.ProductStatus) || x.ProductStatus==request.ProductStatus)
                             && proIDs.Contains(x.Id)
                             && (String.IsNullOrEmpty(request.SearchText) 
                             || x.Name.Contains(request.SearchText))
@@ -2879,6 +2933,7 @@ namespace MayMayShop.API.Repos
                     GetProductListResponse productListRes = new GetProductListResponse();
                     productListRes.Count = totalCount;
                     productListRes.Id = product.Id;
+                    productListRes.ProductStatus=product.ProductStatus;
                     productListRes.Name =isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name;
                     productListRes.Url = await _context.ProductImage.Where(x => x.ProductId == product.Id && x.isMain==true).Select(x => x.Url).SingleOrDefaultAsync();
                     productListRes.OriginalPrice= await _context.ProductPrice
@@ -3088,6 +3143,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
+                                        && p.ProductStatus=="Published"
                                         &&    (String.IsNullOrEmpty(request.ProductName) || p.Name.Contains(request.ProductName))
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
@@ -3114,6 +3170,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
+                                         && p.ProductStatus=="Published"
                                         && (categoryIDs.Count()==0 || categoryIDs.Contains(p.ProductCategoryId))
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
@@ -3143,6 +3200,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product                                       
                                         where p.IsActive == true
+                                        && p.ProductStatus=="Published"
                                         &&    (proIDs.Count() == 0 ||proIDs.Contains(p.Id))
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         select new ProductInfo{
@@ -3167,6 +3225,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
+                                        && p.ProductStatus=="Published"
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))
                                         orderby p.CreatedDate descending
                                         select new ProductInfo{
@@ -3196,6 +3255,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         where p.IsActive == true
+                                        && p.ProductStatus=="Published"
                                         && (proIDs.Count()==0 || proIDs.Contains(p.Id))                        
                                         select new ProductInfo{
                                             Id = p.Id,
@@ -3219,6 +3279,7 @@ namespace MayMayShop.API.Repos
                 productList = await ((
                                         from p in _context.Product
                                         where p.IsActive == true
+                                        && p.ProductStatus=="Published"
                                         && (request.ProductCategoryId==0 || p.ProductCategoryId==request.ProductCategoryId)
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(p.Id))        
                                         select new ProductInfo{
@@ -3256,6 +3317,7 @@ namespace MayMayShop.API.Repos
                 productList = await ( (
                                         from p in _context.Product
                                         .Where(x => x.IsActive == true 
+                                        && x.ProductStatus=="Published"
                                         && productListIDS.Contains(x.Id)
                                         && (productSkuIDs.Count()==0 || !productSkuIDs.Contains(x.Id)))
                                         select new ProductInfo{
@@ -3432,6 +3494,7 @@ namespace MayMayShop.API.Repos
                                 .ToArrayAsync();
             var res = await _context.Product.Where(x=>x.Name.Contains(request.SearchText) 
                                                     && x.IsActive==true 
+                                                    && x.ProductStatus=="Published"
                                                     && !productSkuIDs.Contains(x.Id))
                                                     .OrderByDescending(x =>x.Name.StartsWith(request.SearchText))
                                                     .Select(x => new GetProductNameSuggestionResponse{
@@ -3474,6 +3537,7 @@ namespace MayMayShop.API.Repos
                                     .ToListAsync();                             
             List<Product> productList = await _context.Product
                                     .Where(x => x.IsActive == true 
+                                    && x.ProductStatus=="Published"	
                                     && productListIDS.Contains(x.Id)
                                     && !productSkuIDs.Contains(x.Id))
                                     .ToListAsync();
@@ -3528,9 +3592,139 @@ namespace MayMayShop.API.Repos
             response = response.OrderByDescending(x => x.OrderCount).ToList();            
             return response;
         }
-        public async Task<ResponseStatus> UploadProduct(UploadProductRequest request,int currentLoginID)
+        public async Task<byte[]> DownloadProductUploadTemplate()
         {
-            ResponseStatus response=new ResponseStatus();
+            try
+            {
+                byte[] byteArray = null;
+
+                List<int?> mCID=await _context.ProductCategory
+                .Where(x=>x.IsDeleted!=true && x.SubCategoryId==null)
+                .Select(x=>x.Id)
+                .Distinct()
+                .Cast<int?>()
+                .ToListAsync();
+                
+
+                var cID=await _context.Variant.Where(x=>x.IsDeleted!=true).Select(x=>x.ProductCategoryId).Distinct().ToListAsync();
+                
+                var subCategory =await _context.ProductCategory
+                .Where(x=>x.SubCategoryId>0 
+                && x.IsDeleted!=true 
+                && cID.Contains(x.Id)
+                && mCID.Contains(x.SubCategoryId))
+                .Select(x=>new GetSubCategoryWithVariantsResponse(){
+                    Id=x.Id,
+                    Name=x.Name,
+                    Description=x.Description,
+                    Url=x.Url,
+                    MainCategoryId=x.SubCategoryId,
+                    Variants=_context.Variant
+                            .Where(v=>v.ProductCategoryId==x.Id && v.IsDeleted!=true)
+                            .Select(v=>new VariantInfo(){
+                                Id=v.Id,
+                                Name=v.Name
+                            }).ToList()
+                })
+                .ToListAsync();
+
+                using (var workbook = new XLWorkbook())
+                {
+                    // Instruction 
+                    #region  
+                    IXLWorksheet worksheet1 = workbook.Worksheets.Add("Instruction");
+                    var rowIndex1 = 1;
+
+                    // height all rows
+                    worksheet1.Rows().AdjustToContents();
+
+                    // Coloring 1st row
+                    var row1 = worksheet1.Row(1);
+                    row1.Height = 23;
+                                       
+                    
+                    int maxcount = 0;
+                    foreach (var item in subCategory)
+                    {
+                        if (item.Variants.Count > maxcount)
+                        {
+                            maxcount = item.Variants.Count();
+                        }
+                    }
+                    if (maxcount > 0)
+                    {
+                        row1.Cells(1,maxcount + 1).Style.Fill.BackgroundColor = XLColor.WhiteSmoke;
+                        row1.Cells().Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                        foreach (var item in subCategory)
+                        {
+                            worksheet1.Cell(1, 1).Value = "SubCategory";
+                            worksheet1.Cell(rowIndex1 + 1, 1).Value = item.Name;
+                            for(int i = 1; i <= maxcount; i++)
+                            {
+                                worksheet1.Cell(1, i+1).Value = "Variant "+ i +"";
+                                if (item.Variants.ElementAtOrDefault(i - 1) != null)
+                                {
+                                    worksheet1.Cell(rowIndex1 + 1, i+1).Value = item.Variants[i - 1].Name;
+                                }
+                            }
+                            rowIndex1++;
+                        }
+                        
+                    }
+                    
+                    worksheet1.Columns().AdjustToContents();
+                    #endregion
+                    // Product Create Document
+                    #region
+                        IXLWorksheet worksheet2 = workbook.Worksheets.Add("Product");
+                        var rowIndex2 = 1;
+                        // height all rows
+                        worksheet2.Rows().AdjustToContents();
+
+                        // Coloring 1st row
+                        var row2 = worksheet2.Row(1);
+                        row2.Height = 23;
+                        row2.Cells(1,16).Style.Fill.BackgroundColor = XLColor.WhiteSmoke;
+                        row2.Cells().Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                        
+                        //Table Header 
+                        worksheet2.Cell(rowIndex2, 1).Value = "No.";
+                        worksheet2.Cell(rowIndex2, 2).Value = "ProductName";
+                        worksheet2.Cell(rowIndex2, 3).Value = "Price";
+                        worksheet2.Cell(rowIndex2, 4).Value = "Description";
+                        worksheet2.Cell(rowIndex2, 5).Value = "Promotion(%)";
+                        worksheet2.Cell(rowIndex2, 6).Value = "Tag";
+                        worksheet2.Cell(rowIndex2, 7).Value = "VideoName";
+                        worksheet2.Cell(rowIndex2, 8).Value = "VideoLink";
+                        worksheet2.Cell(rowIndex2, 9).Value = "Quantity";
+                        worksheet2.Cell(rowIndex2, 10).Value = "SubCategory";
+                        worksheet2.Cell(rowIndex2, 11).Value = "Variant1";
+                        worksheet2.Cell(rowIndex2, 12).Value = "VariantValue1";
+                        worksheet2.Cell(rowIndex2, 13).Value = "Variant2";
+                        worksheet2.Cell(rowIndex2, 14).Value = "VariantValue2";
+                        worksheet2.Cell(rowIndex2, 15).Value = "Variant3";
+                        worksheet2.Cell(rowIndex2, 16).Value = "VariantValue3";
+                        // worksheet2.Cell(rowIndex2, 17).Value = "Images";
+
+                        worksheet2.Columns().AdjustToContents();
+                    #endregion
+                    using (var stream = new MemoryStream())
+                    {
+                        workbook.SaveAs(stream);
+                        byteArray = stream.ToArray();
+                    }
+                }
+                return byteArray;
+            }
+            catch (Exception e) 
+            {
+                log.Error(e.Message);
+                return  null;
+            }
+        }
+        public async Task<UploadProductResponse> UploadProduct(UploadProductRequest request,int currentLoginID)
+        {
+            UploadProductResponse response=new UploadProductResponse();
 
             using (MemoryStream excelMemoryStream = new MemoryStream())
             {
@@ -3538,29 +3732,32 @@ namespace MayMayShop.API.Repos
                 DataTable excelProduct =_MayMayShopServices.ToDataTable(excelMemoryStream, "Product");
                 
                 #region Check excel template format
-                if(excelProduct.Columns.Count!=17)
-                {
-                    return new ResponseStatus(){
-                        StatusCode=StatusCodes.Status400BadRequest,
-                        Message="Column count doesn't match in excel template!."
-                    };
+                if(excelProduct.Columns.Count!=16)
+                {                    
+                    response.StatusCode=StatusCodes.Status400BadRequest;
+                    response.Message="Column count doesn't match in excel template!.";
+                    response.IssuesList=null;
+                    return response;
                 }
                 if(excelProduct.Rows.Count<=0)
                 {
-                    return new ResponseStatus(){
-                        StatusCode=StatusCodes.Status400BadRequest,
-                        Message="There's no data to import!"
-                    };
+                    response.StatusCode=StatusCodes.Status400BadRequest;
+                    response.Message="There's no data to import!";
+                    response.IssuesList=null;
+                    return response;                   
                 }
+                List<UploadProductIssues> issuesList=new List<UploadProductIssues>();
                 for(int i=0;i<excelProduct.Rows.Count;i++)
                 {
-                    var existCategory= _context.ProductCategory.Where(x=>x.Name==excelProduct.Rows[i]["SubCategory"].ToString() && x.SubCategoryId!=null).FirstOrDefault();
+                    var existCategory= _context.ProductCategory.Where(x=>x.Name==excelProduct.Rows[i]["SubCategory"].ToString() && x.SubCategoryId!=null && x.IsDeleted!=true).FirstOrDefault();
                     if(existCategory==null)
                     {
-                        return new ResponseStatus(){
-                        StatusCode=StatusCodes.Status400BadRequest,
-                        Message=string.Format("{0} does not exist in out system, plz upload category first!",excelProduct.Rows[i]["SubCategory"].ToString())
-                    };
+                        var issues=new UploadProductIssues(){
+                            ProductName=excelProduct.Rows[i]["ProductName"].ToString(),
+                            Reason=string.Format("Category name({0}) does not exist in our system, please upload category first!",excelProduct.Rows[i]["SubCategory"].ToString())
+                        };
+                        issuesList.Add(issues);
+                        continue;
                     }
                     // assume column 10=1 varinat, 12=2 variant, 14=3 variant
                     string v1=excelProduct.Rows[i]["Variant1"].ToString();
@@ -3569,35 +3766,61 @@ namespace MayMayShop.API.Repos
 
                     if(v1!="#Empty#" && !_context.Variant.Any(x=>x.ProductCategoryId==existCategory.Id && x.Name==v1))
                     {
-                        return new ResponseStatus(){
-                        StatusCode=StatusCodes.Status400BadRequest,
-                        Message=string.Format("{0} category doesn't have {1} variant!",excelProduct.Rows[i]["SubCategory"].ToString(),v1)
+                        var issues=new UploadProductIssues(){
+                            ProductName=excelProduct.Rows[i]["ProductName"].ToString(),
+                            Reason=string.Format("Category({0}) doesn't have variant({1})!",excelProduct.Rows[i]["SubCategory"].ToString(),v1)
+                        };
+                        issuesList.Add(issues);
+                        continue;
                     };
-                    }
                     if(v2!="#Empty#" && !_context.Variant.Any(x=>x.ProductCategoryId==existCategory.Id && x.Name==v2))
                     {
-                        return new ResponseStatus(){
-                        StatusCode=StatusCodes.Status400BadRequest,
-                        Message=string.Format("{0} category doesn't have {1} variant!",excelProduct.Rows[i]["SubCategory"].ToString(),v2)
-                    };
+                        var issues=new UploadProductIssues(){
+                            ProductName=excelProduct.Rows[i]["ProductName"].ToString(),
+                            Reason=string.Format("Category({0}) doesn't have variant({1})!",excelProduct.Rows[i]["SubCategory"].ToString(),v2)
+                        };
+                        issuesList.Add(issues);   
+                        continue;
                     }
                     if(v3!="#Empty#" && !_context.Variant.Any(x=>x.ProductCategoryId==existCategory.Id && x.Name==v3))
+                    {                    
+                         var issues=new UploadProductIssues(){
+                            ProductName=excelProduct.Rows[i]["ProductName"].ToString(),
+                            Reason=string.Format("Category({0}) doesn't have variant({1})!",excelProduct.Rows[i]["SubCategory"].ToString(),v3)
+                        };
+                        issuesList.Add(issues); 
+                        continue;
+                    }
+                    var existingName=await _context.Product
+                    .AnyAsync(x=>x.Name.Trim().ToUpper()==excelProduct.Rows[i]["ProductName"].ToString().Trim().ToUpper() && x.IsActive==true); 
+
+                    if(existingName)
                     {
-                        return new ResponseStatus(){
-                        StatusCode=StatusCodes.Status400BadRequest,
-                        Message=string.Format("{0} category doesn't have {1} variant!",excelProduct.Rows[i]["SubCategory"].ToString(),v3)
-                    };
-                    } 
+                        var issues=new UploadProductIssues(){
+                            ProductName=excelProduct.Rows[i]["ProductName"].ToString(),
+                            Reason=string.Format("Product name({0}) is duplicated!",excelProduct.Rows[i]["ProductName"].ToString())
+                        };
+                        issuesList.Add(issues);
+                        continue; 
+                    }
+                }
+
+                if(issuesList.Count>0)
+                {
+                    response.StatusCode=StatusCodes.Status400BadRequest;
+                    response.Message="Can't upload product, some product still have the issued!";
+                    response.IssuesList=issuesList;
+                    return response; 
                 }   
                
                 #endregion
 
-                var imageList=_MayMayShopServices.ExcelPicture(excelMemoryStream, "Product",excelProduct.Rows.Count);            
+                //var imageList=_itBabyServices.ExcelPicture(excelMemoryStream, "Product",excelProduct.Rows.Count);            
 
                 for(int i=0;i<excelProduct.Rows.Count;i++)
                 {
                     #region Create ProductSku
-                    var existCategory= _context.ProductCategory.Where(x=>x.Name==excelProduct.Rows[i]["SubCategory"].ToString() && x.SubCategoryId!=null).FirstOrDefault();
+                    var existCategory= _context.ProductCategory.Where(x=>x.Name==excelProduct.Rows[i]["SubCategory"].ToString() && x.SubCategoryId!=null && x.IsDeleted!=true).FirstOrDefault();
                     // assume column 10=1 varinat, 12=2 variant, 14=3 variant
                     string v1=excelProduct.Rows[i]["Variant1"].ToString();
                     string v2=excelProduct.Rows[i]["Variant2"].ToString();
@@ -3610,7 +3833,7 @@ namespace MayMayShop.API.Repos
 
                     if(v1!="#Empty#")
                     {
-                        var varinat=_context.Variant.Where(x=>x.ProductCategoryId==existCategory.Id && x.Name==v1).SingleOrDefault();
+                        var varinat=_context.Variant.Where(x=>x.ProductCategoryId==existCategory.Id && x.Name==v1 && x.IsDeleted!=true).SingleOrDefault();
                         Options opt=new Options(){
                             VariantId=varinat.Id,
                             OptionValue=vValue1.Split(',').ToList()
@@ -3619,7 +3842,7 @@ namespace MayMayShop.API.Repos
                     }
                     if(v2!="#Empty#")
                     {
-                        var varinat=_context.Variant.Where(x=>x.ProductCategoryId==existCategory.Id && x.Name==v2).SingleOrDefault();
+                        var varinat=_context.Variant.Where(x=>x.ProductCategoryId==existCategory.Id && x.Name==v2 && x.IsDeleted!=true).SingleOrDefault();
                         Options opt=new Options(){
                             VariantId=varinat.Id,
                             OptionValue=vValue2.Split(',').ToList()
@@ -3628,7 +3851,7 @@ namespace MayMayShop.API.Repos
                     }
                     if(v3!="#Empty#")
                     {
-                        var varinat=_context.Variant.Where(x=>x.ProductCategoryId==existCategory.Id && x.Name==v3).SingleOrDefault();
+                        var varinat=_context.Variant.Where(x=>x.ProductCategoryId==existCategory.Id && x.Name==v3 && x.IsDeleted!=true).SingleOrDefault();
                         Options opt=new Options(){
                             VariantId=varinat.Id,
                             OptionValue=vValue3.Split(',').ToList()
@@ -3679,19 +3902,23 @@ namespace MayMayShop.API.Repos
 
                     #region  image req
                     List<ImageRequest> ImageList=new List<ImageRequest>();
-                    UploadProductExcelImage uploadProductExcelImage=imageList.Where(x=>x.index==i+1).SingleOrDefault();
-                    foreach(var img in uploadProductExcelImage.ExcelPicture)
-                    {
-                        ImageRequest newImg=new ImageRequest(){
-                            ImageId=0,
-                            ImageContent=_MayMayShopServices.ImageToBase64(img.Image,new System.Drawing.Imaging.ImageFormat(img.Image.RawFormat.Guid)),
-                            Extension="png",
-                            Action="New"
-                        };
-                        ImageList.Add(newImg);
-                    } 
+                    // UploadProductExcelImage uploadProductExcelImage=imageList.Where(x=>x.index==i+1).SingleOrDefault();
+                    // foreach(var img in uploadProductExcelImage.ExcelPicture)
+                    // {
+                    //     ImageRequest newImg=new ImageRequest(){
+                    //         ImageId=0,
+                    //         ImageContent=_itBabyServices.ImageToBase64(img.Image,new System.Drawing.Imaging.ImageFormat(img.Image.RawFormat.Guid)),
+                    //         Extension="png",
+                    //         Action="New"
+                    //     };
+                    //     ImageList.Add(newImg);
+                    // } 
                     #endregion
 
+                    var productPrice=new ProductPriceEntry(){
+                        Price=double.Parse(excelProduct.Rows[i]["Price"].ToString()),
+                        FromDate=DateTime.Now,
+                    };
                     CreateProductRequest productRequest=new CreateProductRequest(){
                         ProductId=populateSkuResponse.FirstOrDefault().ProductId,
                         Name=excelProduct.Rows[i]["ProductName"].ToString(),
@@ -3699,6 +3926,7 @@ namespace MayMayShop.API.Repos
                         Price=double.Parse(excelProduct.Rows[i]["Price"].ToString()),
                         Promotion=int.Parse(excelProduct.Rows[i]["Promotion(%)"].ToString()),
                         TagsList=tagList,
+                        ProductStatus="Draft",
                         ProductClip=new ProductClipRequest(){
                                         Name=excelProduct.Rows[i]["VideoName"].ToString(),
                                         ClipPath=excelProduct.Rows[i]["VideoLink"].ToString(),
@@ -3725,6 +3953,7 @@ namespace MayMayShop.API.Repos
             response.StatusCode=StatusCodes.Status200OK;
             return response;
         }
+
         public async Task<GetAllProductListBuyerResponse> GetAllProductListBuyer(GetAllProductListBuyerRequest request)
         {
             bool isZawgyi=Rabbit.IsZawgyi(_httpContextAccessor);
@@ -3762,9 +3991,11 @@ namespace MayMayShop.API.Repos
                 var products= _context.Product
                             .Where(p=>subCategoryIDs.Contains(p.ProductCategoryId)
                             && p.IsActive==true
+                             && p.ProductStatus=="Published"
                             && !productSkuIDs.Contains(p.Id))
                             .Select(p=>new GetAllProductListBuyer{
                                 ProductId=p.Id,
+                                ProductTypeId=p.ProductTypeId,
                                 Url=_context.ProductImage.Where(img=>img.isMain==true && img.ProductId==p.Id).Select(img=>img.Url).SingleOrDefault(),
                                 Name=isZawgyi?Rabbit.Uni2Zg(p.Name):p.Name,
                                 OriginalPrice=_context.ProductPrice.Where(oPrice=>oPrice.ProductId==p.Id).Select(oPrice=>oPrice.Price).SingleOrDefault(),
@@ -3806,6 +4037,34 @@ namespace MayMayShop.API.Repos
                 Url=x.Url
             })
             .ToListAsync();
+        }
+        public async Task<ResponseStatus> UpdateProductStatus(UpdateProductStatusRequest request)
+        {
+            var response=new ResponseStatus();
+            var product=await _context.Product
+            .Where(x=>x.Id==request.ProductId)
+            .SingleOrDefaultAsync();
+
+            if(product!=null){
+                if(request.ProductStatus=="Published" || request.ProductStatus=="Draft")
+                {
+                    product.ProductStatus=request.ProductStatus;
+                    await _context.SaveChangesAsync();
+
+                    response.StatusCode=StatusCodes.Status200OK;
+                    response.Message="Successfully updated.";
+                }
+               
+                else{
+                    response.StatusCode=StatusCodes.Status400BadRequest;
+                    response.Message="Invalid product status!";
+                }
+            }
+             else{
+                    response.StatusCode=StatusCodes.Status400BadRequest;
+                    response.Message="Product is not found!";
+                }
+            return response;
         }
         //------------------------Brand-----------------------//
         public async Task<GetProductByBrandResponse> GetProductByBrand(GetProductByBrandRequest request)

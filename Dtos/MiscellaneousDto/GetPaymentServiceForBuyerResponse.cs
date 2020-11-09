@@ -16,6 +16,6 @@ namespace MayMayShop.API.Dtos.MiscellanceousDto
         public int Id {get;set;}
         public string Name {get;set;}
         public string Url {get;set;}
-        public bool IsPaymentGateWay {get;set;}
+        public bool? IsPaymentGateWay {get;set;}
     }
 }

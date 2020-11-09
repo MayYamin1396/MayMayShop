@@ -1,5 +1,4 @@
 using MayMayShop.API.Helpers;
-using MayMayShop.API.Helpers;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -72,9 +71,6 @@ namespace MayMayShop.API.Const
         public static string AWS_BANNER_PATH {get;set;}
         public static string AWS_USER_PROFILE_PATH {get;set;}
         public static string AWS_IMG_HOSTED {get;set;}
-
-        public static string AWS_BRAND_BANNER_PATH {get;set;}
-        public static string AWS_BRAND_LOGO_PATH {get;set;}
         public static string FCM_TOKEN_KEY_BUYER;
         public static string FCM_SENDER_ID_BUYER { get; set; }
         public static string FCM_TOKEN_KEY_SELLER;
@@ -233,6 +229,9 @@ namespace MayMayShop.API.Const
                                                 "IPad",
                                                 "ipad",
                                             };
+        
+        public static string AWS_BRAND_BANNER_PATH {get;set;}
+        public static string AWS_BRAND_LOGO_PATH {get;set;}
 
         public static void loadConfigData()
         {
@@ -413,8 +412,9 @@ namespace MayMayShop.API.Const
             SEARCHTYPE_PROMOTION = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".promotion"));
             SEARCHTYPE_SUB_CATEGORY = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".subCategory"));
             SEARCHTYPE_BEST_SELLER = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".bestSeller"));
+
             AWS_BRAND_BANNER_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandBannerPath");
             AWS_BRAND_LOGO_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandLogoPath");
-        }   
+        }
     }
 }

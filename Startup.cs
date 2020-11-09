@@ -1,7 +1,6 @@
 using AutoMapper;
 using System.Net;
 using System.Text;
-using Web.Commons.Config;
 using Microsoft.OpenApi.Models;
 using MayMayShop.API.Repos;
 using Microsoft.AspNetCore.Http;
@@ -22,14 +21,11 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using MayMayShop.API.Interfaces.Services;
 using MayMayShop.API.Services;
-using DinkToPdf;
-using DinkToPdf.Contracts;
 using System.IO;
 using log4net;
 using System.Reflection;
 using log4net.Config;
-using log4net.Core;
-using System;
+using MayMayShop.Repos;
 
 namespace MayMayShop
 {
@@ -47,9 +43,7 @@ namespace MayMayShop
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
-        {
-            // try
-            // {
+        {            
                 var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
                 XmlConfigurator.Configure(logRepository, new FileInfo(Configuration.GetSection("appSettings:log4netFile").Value));
 
@@ -93,10 +87,6 @@ namespace MayMayShop
 
                 services.AddCors();
         
-                CustomAssemblyLoadContext context = new CustomAssemblyLoadContext();
-                context.LoadUnmanagedLibrary(Directory.GetCurrentDirectory() + "\\Library\\libwkhtmltox.dll");
-                services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));            
-
                 services.AddAutoMapper(typeof(Startup));
                 services.AddScoped<IMiscellaneousRepository, MiscellaneousRepository>();
                 services.AddScoped<IProductRepository, ProductRepository>();
@@ -108,6 +98,7 @@ namespace MayMayShop
                 services.AddScoped<IMemberPointServices, MemberPointServices>();
                 services.AddScoped<IMemberPointRepository, MemberPointRepository>();
                 services.AddScoped<IReportRepository, ReportRepository>();
+                services.AddScoped<IFacebookRepository, FacebookRepository>();
                 
                 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options => {
@@ -126,16 +117,9 @@ namespace MayMayShop
                 services.AddScoped<ActionActivity>();
                 services.AddScoped<ActionActivityLog>();
 
-                services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
-
                 services.AddControllers();
                 services.AddHttpContextAccessor();
                 
-            // } catch (Exception e)
-            // {
-            //     log.Error(e.Message);
-            // }
-            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

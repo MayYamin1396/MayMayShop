@@ -32,7 +32,8 @@ namespace MayMayShop.API.Interfaces.Repos
         Task<List<GetVariantValueResponse>> GetVariantValue(GetVariantValueRequest request);
         Task<List<GetProductNameSuggestionResponse>> GetProductNameSuggestion(GetProductNameSuggestionRequest request);
         Task<List<GetBestSellingProductResponse>> GetBestSellingProduct(GetBestSellingProductRequest request);
-        Task<ResponseStatus> UploadProduct(UploadProductRequest request,int currentLoginID);
+        Task<byte[]> DownloadProductUploadTemplate();
+        Task<UploadProductResponse> UploadProduct(UploadProductRequest request,int currentLoginID);
         Task<GetAllProductListBuyerResponse> GetAllProductListBuyer(GetAllProductListBuyerRequest request);
         Task<List<ProductImage>> GetAllProductImageByProductId(int productId);
         Task<List<GetProductTypeResponse>> GetProductType();

@@ -135,5 +135,51 @@ namespace Ecommerce.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
+
+        [HttpGet("GetSalesAndPerformance")]
+        public async Task<IActionResult> GetSalesAndPerformance([FromQuery]GetSalesAndPerformanceRequest request)
+        {
+            try
+            {
+                if (request.FromDate.ToString("dd-MMM-yy") == "01-Jan-01")
+                {
+                    DateTime now = DateTime.Now;
+                    request.FromDate = new DateTime(now.Year, now.Month, 1);
+                    request.ToDate = request.FromDate.AddMonths(1).AddDays(-1);
+                }
+                var response = await _repo.GetSalesAndPerformance(request);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+                string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+                log.Error(controllerName + " > " + actionName + " : " + DateTime.Now.ToString() + " => " +  e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        [HttpGet("GetVisitors")]
+        public async Task<IActionResult> GetVisitors([FromQuery]GetSalesAndPerformanceRequest request)
+        {
+            try
+            {
+                if (request.FromDate.ToString("dd-MMM-yy") == "01-Jan-01")
+                {
+                    DateTime now = DateTime.Now;
+                    request.FromDate = new DateTime(now.Year, now.Month, 1);
+                    request.ToDate = request.FromDate.AddMonths(1).AddDays(-1);
+                }
+                var response = await _repo.GetVisitors(request);
+                return Ok(response);
+            }
+            catch (Exception e)
+            {
+                string actionName = this.ControllerContext.RouteData.Values["action"].ToString();
+                string controllerName = this.ControllerContext.RouteData.Values["controller"].ToString();
+                log.Error(controllerName + " > " + actionName + " : " + DateTime.Now.ToString() + " => " +  e.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
     }
 }

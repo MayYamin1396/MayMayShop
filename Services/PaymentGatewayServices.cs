@@ -192,8 +192,7 @@ namespace MayMayShop.API.Services
         }
 
         //-----------------WAVE PAY-------------------//
-
-        public async Task<PostOrderByWavePayResponse> WavePayPrecreate(string TransactionId,double NetAmount, List<ProductItem> Items, string payment_description)
+        public async Task<PostOrderByWavePayResponse> WavePayPrecreate(string TransactionId,double NetAmount, List<ProductItem> Items, string payment_description,int platform)
         {
             var result = new PostOrderByWavePayResponse();
 
@@ -202,7 +201,7 @@ namespace MayMayShop.API.Services
                 merchant_id = MayMayShopConst.WAVE_MERCHANT_ID,
                 order_id = TransactionId,
                 merchant_reference_id = TransactionId,
-                frontend_result_url = MayMayShopConst.WAVE_FRONTEND_RESULT_URL,
+                frontend_result_url = MayMayShopConst.WAVE_FRONTEND_RESULT_URL+platform,
                 backend_result_url = MayMayShopConst.WAVE_BACKEND_RESULT_URL,
                 amount = Convert.ToInt32(NetAmount),
                 payment_description = payment_description,
@@ -210,11 +209,12 @@ namespace MayMayShop.API.Services
                 items = null,
                 hash = null,
             };
-
-            request.hash = GenerateSHA256Hash_WaveOrder(request);
+           
 
             var itms = JsonConvert.SerializeObject(Items);
             request.items = itms;
+
+            request.hash = GenerateSHA256Hash_WaveOrder(request);
 
             string json = JsonConvert.SerializeObject(request,Formatting.Indented);
 
@@ -236,6 +236,8 @@ namespace MayMayShop.API.Services
             log.Info("Response => " + JsonConvert.SerializeObject(result));    
             return result;
         }
+
+
         private string GenerateSHA256Hash_WaveOrder(WavePrecreateRequest req)
         {
 

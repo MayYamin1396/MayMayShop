@@ -5,7 +5,7 @@ namespace MayMayShop.API.Dtos.ProductDto
 {
     public class GetProductListResponse
     {
-        public int Count { get; set; }
+         public int Count { get; set; }
         public int Id { get; set; }
         public string Name { get; set; }
         public int Qty{get;set;}
@@ -21,5 +21,6 @@ namespace MayMayShop.API.Dtos.ProductDto
         public DateTime RewardStartDate {get;set;}
         public DateTime RewardEndDate {get;set;}
         public int ProductRewardId {get;set;}
+        public string ProductStatus {get;set;}
     }
 }

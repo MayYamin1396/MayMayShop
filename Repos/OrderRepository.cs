@@ -679,6 +679,17 @@ namespace MayMayShop.API.Repos
 
                     var issueList=new List<ProductIssues>();
                     PostOrderResponse response = new PostOrderResponse();
+                     if(req.ProductInfo.Count==0)
+                    {
+                         var issue=new ProductIssues(){
+                                    ProductId=0,
+                                    ProductName="",
+                                    Action="ItemNotFound",
+                                    Qty=0,
+                                    Reason="There's no item to make an order"
+                                };
+                                issueList.Add(issue);
+                    }
                     foreach (var item in req.ProductInfo)
                     {
                         var product=await _context.Product.Where(x=>x.Id==item.ProductId).SingleOrDefaultAsync();
@@ -3151,7 +3162,17 @@ namespace MayMayShop.API.Repos
             #region Check qty before order
 
                     var issueList=new List<ProductIssues>();
-                    
+                    if(req.ProductInfo.Count==0)
+                    {
+                         var issue=new ProductIssues(){
+                                    ProductId=0,
+                                    ProductName="",
+                                    Action="ItemNotFound",
+                                    Qty=0,
+                                    Reason="There's no item to make an order"
+                                };
+                                issueList.Add(issue);
+                    }
                     foreach (var item in req.ProductInfo)
                     {
                         var product=await _context.Product.Where(x=>x.Id==item.ProductId).SingleOrDefaultAsync();
@@ -3306,9 +3327,9 @@ namespace MayMayShop.API.Repos
                              Price=x.Price,
                              ProductId=x.ProductId,
                              SkuId=x.SkuId,
-                             OriginalPrice=x.OriginalPrice,
-                             PromotePrice=x.Price,
-                             PromotePercent=x.PromotePercent,
+                             OriginalPrice=(x.Qty * x.OriginalPrice),
+                             PromotePrice=(x.Qty * x.Price),
+                             PromotePercent=int.Parse(x.PromotePercent.ToString()),
                             })
                             .ToListAsync();
             double totalAmount=0;
@@ -3352,7 +3373,7 @@ namespace MayMayShop.API.Repos
             response.DeliveryAmount=order.DeliveryFee;
             response.CommercialTax=commercialTax;
             response.NetAmount=order.NetAmt + commercialTax;
-            response.Discount=_context.OrderDetail.Where(x=>x.OrderId==OrderId).Sum(x=>x.Discount);
+            response.Discount=_context.OrderDetail.Where(x=>x.OrderId==OrderId).Sum(x=>x.Discount*x.Qty);
             response.PaymentType=isZawgyi?Rabbit.Uni2Zg(paymentServices.Name):paymentServices.Name;
             response.BankName=bank;
             response.QRCode=QRCodeHelper.GenerateQRCode(MayMayShopConst.COMPANY_ORDER_DETAIL_URL+OrderId);
@@ -3400,12 +3421,12 @@ namespace MayMayShop.API.Repos
                              Price=x.Price,
                              ProductId=x.ProductId,
                              SkuId=x.SkuId,
-                             OriginalPrice=x.OriginalPrice,
-                             PromotePrice=x.Price,
-                             PromotePercent=x.PromotePercent,
+                             OriginalPrice=x.OriginalPrice * x.Qty,
+                             PromotePrice=x.Price * x.Qty,
+                             PromotePercent=int.Parse(x.PromotePercent.ToString()),
                             })
                             .ToListAsync();
-            
+            double totalAmount=0;
             foreach (var item in orderDetail)
             {
                 var skuValue = await (from psku in _context.ProductSkuValue
@@ -3422,6 +3443,7 @@ namespace MayMayShop.API.Repos
                         .Where(x=>x.Id==item.ProductId)
                         .Select(x=>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name)
                         .SingleOrDefaultAsync();  
+                totalAmount=totalAmount+item.OriginalPrice;
 
             }
 
@@ -3438,10 +3460,10 @@ namespace MayMayShop.API.Repos
             response.VoucherNo=order.VoucherNo;
             response.OrderId=order.Id;
             response.OrderDate=order.OrderDate;
-            response.TotalAmount=order.TotalAmt;
+            response.TotalAmount=totalAmount;
             response.DeliveryAmount=order.DeliveryFee;
             response.NetAmount=order.NetAmt + commercialTax;
-            response.Discount=_context.OrderDetail.Where(x=>x.OrderId==OrderId).Sum(x=>x.Discount);
+            response.Discount=_context.OrderDetail.Where(x=>x.OrderId==OrderId).Sum(x=>x.Discount * x.Qty);
             response.PaymentType=isZawgyi?Rabbit.Uni2Zg(paymentServices.Name):paymentServices.Name;
             response.BankName=bank;
             response.TaxplayerId=MayMayShopConst.TAX_TAXPAYER_ID;
@@ -3469,7 +3491,7 @@ namespace MayMayShop.API.Repos
         }
 
         //------wave-------//
-        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token)
+        public async Task<PostOrderByWavePayResponse> PostOrderByWavePay(PostOrderRequest req, int userId, string token,int platform)
         {
             var transactionID = System.Guid.NewGuid().ToString()+MayMayShopConst.APPLICATION_CONFIG_ID;
             OrderTransaction transaction = new OrderTransaction(){
@@ -3526,9 +3548,10 @@ namespace MayMayShop.API.Repos
             }
             var payment_description =string.IsNullOrEmpty(req.PaymentInfo.Remark)?"-":req.PaymentInfo.Remark;
 
-            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description);
+            PostOrderByWavePayResponse response = await _paymentservices.WavePayPrecreate(transactionID,req.NetAmt,items,payment_description,platform);
             return response;
         }
+
         public async Task<PostOrderResponse> CheckWaveTransactionStatus(CheckWaveTransactionStatusRequest request,int platform)
         {
             var resp = new PostOrderResponse();
@@ -3570,13 +3593,19 @@ namespace MayMayShop.API.Repos
             }
             return resp;
         }
-        public async Task<GetOrderDetailResponse> GetOrderDetailByTransactionId(string transactionId, string token)
+        public async Task<GetOrderIdByTransactionIdResponse> GetOrderIdByTransactionId(string transactionId, string token)
         {
-            var resp = new GetOrderDetailResponse();
+            var resp = new GetOrderIdByTransactionIdResponse();
             var orderId = _context.OrderTransaction.Where(x => x.Id == transactionId).Select(x => x.OrderId).FirstOrDefault();
             if (orderId != null)
             {
-                resp = await GetOrderDetail(Convert.ToInt32(orderId),token);
+                resp.OrderId = orderId;
+                resp.Message = "Success";
+                resp.StatusCode = StatusCodes.Status200OK;
+            }else{
+                resp.OrderId = null;
+                resp.Message = "Failed";
+                resp.StatusCode = StatusCodes.Status400BadRequest;
             }
             return resp;
         }
