@@ -376,6 +376,7 @@ namespace MayMayShop.API.Repos
                 {
                         var issue=new ProductIssues(){
                             ProductId=item.ProductId,
+                            SkuId=item.SkuId,
                             ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
                             Action="Delete",
                             Qty=skuProductQty.Qty,
@@ -3085,11 +3086,11 @@ namespace MayMayShop.API.Repos
                     Url = _context.ProductImage.Where(prdImg => prdImg.ProductId == itm.ProductId && prdImg.isMain == true).Select(x => x.Url).FirstOrDefault(),
                     Name = _context.Product.Where(prd => prd.Id == itm.ProductId).Select(x =>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name).FirstOrDefault(),
                     Qty = itm.Qty,
-                    OriginalPrice = itm.OriginalPrice,
-                    // PromotePrice=_context.ProductPromotion.Where(p => p.ProductId == itm.ProductId).Select(p => p.TotalAmt).FirstOrDefault(),
-                    // PromotePercent=_context.ProductPromotion.Where(p => p.ProductId == itm.ProductId).Select(p => p.Percent).FirstOrDefault(),
-                    PromotePrice=itm.OriginalPrice - itm.Discount,
-                    PromotePercent=itm.PromotePercent,
+                    OriginalPrice = itm.OriginalPrice==0?
+                    _context.ProductSku.Where(sku=>sku.ProductId==itm.ProductId && sku.SkuId==itm.SkuId).Select(sku=>sku.Price).FirstOrDefault()
+                    :itm.OriginalPrice,
+                    PromotePrice=(itm.PromotePercent==0 || itm.PromotePercent==null)?0:itm.OriginalPrice - itm.Discount,
+                    PromotePercent=itm.PromotePercent==null?0:itm.PromotePercent,
                     
                 }).ToListAsync();
 
@@ -3349,8 +3350,8 @@ namespace MayMayShop.API.Repos
                 item.Name=await _context.Product
                         .Where(x=>x.Id==item.ProductId)
                         .Select(x=>isZawgyi?Rabbit.Uni2Zg(x.Name):x.Name)
-                        .SingleOrDefaultAsync();     
-                totalAmount=totalAmount+item.OriginalPrice;                      
+                        .SingleOrDefaultAsync();   
+                totalAmount=totalAmount+item.OriginalPrice;                
             }
 
             //Commercial tax
