@@ -390,6 +390,7 @@ namespace MayMayShop.API.Repos
                         
                         var issue=new ProductIssues(){
                             ProductId=item.ProductId,
+                            SkuId = item.SkuId,
                             ProductName=isZawgyi?Rabbit.Uni2Zg(product.Name):product.Name,
                                 Action="OutOfStock",
                             Qty=skuProductQty.Qty,

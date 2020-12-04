@@ -17,6 +17,8 @@ namespace MayMayShop.API.Dtos.OrderDto
     }
     public class ProductIssues{
         public int ProductId {get;set;}
+
+        public int SkuId {get;set;}
         public string ProductName {get;set;}
         public string Action {get;set;}
         public int Qty {get;set;}
