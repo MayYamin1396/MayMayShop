@@ -413,8 +413,8 @@ namespace MayMayShop.API.Const
             SEARCHTYPE_SUB_CATEGORY = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".subCategory"));
             SEARCHTYPE_BEST_SELLER = int.Parse(xmlRetriever.GetParameter(PARAM_SEARCHTYPE + ".bestSeller"));
 
-            AWS_BRAND_BANNER_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandBannerPath");
-            AWS_BRAND_LOGO_PATH = xmlRetriever.GetParameter(PARAM_AWS + "brandLogoPath");
+            AWS_BRAND_BANNER_PATH = xmlRetriever.GetParameter(PARAM_AWS + ".brandBannerPath");
+            AWS_BRAND_LOGO_PATH = xmlRetriever.GetParameter(PARAM_AWS + ".brandLogoPath");
         }
     }
 }
